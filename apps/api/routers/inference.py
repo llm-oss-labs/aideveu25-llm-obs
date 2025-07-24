@@ -1,117 +1,97 @@
 """
-Chat inference router for handling LLM chat requests.
-Provides endpoints for chat interactions and session management.
+Chat inference router for handling LLM interactions.
 """
 import logging
-import time
-from fastapi import APIRouter, HTTPException
-from typing import Dict
+from typing import Dict, List
+from fastapi import APIRouter, HTTPException, Request
+from apps.api.schemas.request import ChatRequest
+from apps.api.schemas.response import ChatResponse
 
-from ..schemas.request import ChatRequest
-from ..schemas.response import ChatResponse, ErrorResponse
-
-# Configure logging
 logger = logging.getLogger(__name__)
 
-# Router instance
-router = APIRouter(prefix="/v1", tags=["inference"])
+router = APIRouter()
 
-# Global LLM client - will be set by main.py
-_llm_client = None
-
-def set_llm_client(client):
-    """Set the global LLM client instance."""
-    global _llm_client
-    _llm_client = client
+# In-memory session storage
+sessions: Dict[str, List[Dict[str, str]]] = {}
 
 
-@router.post(
-    "/chat",
-    response_model=ChatResponse,
-    responses={
-        400: {"model": ErrorResponse, "description": "Bad Request"},
-        500: {"model": ErrorResponse, "description": "Internal Server Error"}
-    },
-    summary="Process chat message",
-    description="""
-    Send a message to the AI assistant and receive a response.
-    
-    The API maintains conversation history per session_id, so you can have
-    multi-turn conversations by using the same session_id across requests.
-    
-    **Request Body:**
-    - `session_id`: Unique identifier for your conversation (1-100 characters)
-    - `user_message`: Your message to the AI (1-10,000 characters)
-    
-    **Response:**
-    - `session_id`: Your session ID (echoed back)
-    - `reply`: The AI assistant's response
-    
-    **Session Management:**
-    - Sessions are stored in memory and persist across requests
-    - Sessions are automatically cleaned up to prevent memory bloat
-    - No authentication required (workshop environment)
+@router.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest, app_request: Request):
     """
-)
-async def chat_endpoint(request: ChatRequest) -> ChatResponse:
-    """
-    Process a chat message and return AI response.
-    
-    This endpoint:
-    1. Validates the incoming request
-    2. Retrieves conversation history for the session
-    3. Sends the complete context to the LLM
-    4. Returns the AI's response
-    5. Updates the session history
+    Process chat requests.
     
     Args:
-        request: Chat request containing session_id and user_message
+        request: ChatRequest with session_id and user_message
+        app_request: FastAPI Request to access app state
         
     Returns:
-        ChatResponse with session_id and AI reply
-        
-    Raises:
-        HTTPException: If request validation fails or LLM call errors
+        ChatResponse with session_id and reply
     """
-    if _llm_client is None:
-        raise HTTPException(status_code=500, detail="LLM client not initialized")
+    # Get app state
+    app_state = app_request.app.state.app_state
+    llm_client = app_state.get("llm_client")
+    settings = app_state.get("settings")
     
-    start_time = time.time()
+    # Check if LLM client is available
+    if not llm_client:
+        logger.error("Chat request received but LLM client is not available")
+        raise HTTPException(
+            status_code=503,
+            detail="LLM service unavailable. Please check your configuration."
+        )
     
     try:
-        logger.info(f"Received chat request for session: {request.session_id}")
+        # Get or create session
+        if request.session_id not in sessions:
+            sessions[request.session_id] = []
+            logger.info(f"Created new session: {request.session_id}")
         
-        # Validate input length (additional server-side validation)
-        if len(request.user_message.strip()) == 0:
-            raise HTTPException(
-                status_code=400,
-                detail="User message cannot be empty"
-            )
+        # Add user message to session
+        sessions[request.session_id].append({
+            "role": "user",
+            "content": request.user_message
+        })
         
-        # Process the chat request
-        ai_reply = await _llm_client.chat(
+        logger.info(f"Processing chat for session {request.session_id}")
+        
+        # Generate response using the client's chat method
+        reply = await llm_client.chat(
             session_id=request.session_id,
             user_message=request.user_message
         )
         
-        # Log successful completion
-        duration = time.time() - start_time
-        logger.info(f"Chat completed for session {request.session_id} in {duration:.2f}s")
+        # Add assistant response to session
+        sessions[request.session_id].append({
+            "role": "assistant",
+            "content": reply
+        })
         
+        # Return response
         return ChatResponse(
             session_id=request.session_id,
-            reply=ai_reply
+            reply=reply
         )
         
     except HTTPException:
-        # Re-raise HTTP exceptions (client errors)
+        # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        # Log server errors and return 500
-        duration = time.time() - start_time
-        logger.error(f"Chat failed for session {request.session_id} after {duration:.2f}s: {str(e)}")
+        logger.error(f"Error processing chat request: {e}")
         
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal server error: Failed to process chat request"
-        )
+        # Parse error and provide generic helpful messages
+        error_msg = str(e).lower()
+        
+        if "connection" in error_msg or "refused" in error_msg:
+            detail = "Cannot connect to LLM service. Please check your configuration and ensure the service is running."
+        elif "unauthorized" in error_msg or "401" in error_msg or "403" in error_msg:
+            detail = "Authentication failed. Please check your API credentials."
+        elif "model" in error_msg and ("not found" in error_msg or "404" in error_msg):
+            detail = "Model not found. Please verify the model name in your configuration."
+        elif "rate" in error_msg and "limit" in error_msg:
+            detail = "Rate limit exceeded. Please try again later."
+        elif "timeout" in error_msg:
+            detail = "Request timed out. The service might be overloaded."
+        else:
+            detail = f"Failed to process chat request: {str(e)}"
+            
+        raise HTTPException(status_code=500, detail=detail)

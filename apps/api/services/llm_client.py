@@ -41,22 +41,31 @@ class LLMClient:
     
     def _initialize_client(self):
         """Initialize the appropriate LangChain client based on provider."""
-        if self.settings.llm_provider == "ollama":
-            return ChatOllama(
-                model=self.settings.ollama_model,
-                base_url=self.settings.ollama_base_url,
-                temperature=0.7,
-            )
-        elif self.settings.llm_provider == "azure":
-            return AzureChatOpenAI(
-                model=self.settings.azure_openai_model,
-                azure_endpoint=self.settings.azure_openai_endpoint,
-                api_key=self.settings.azure_openai_api_key,
-                api_version=self.settings.azure_openai_api_version,
-                temperature=0.7,
-            )
-        else:
-            raise ValueError(f"Unsupported LLM provider: {self.settings.llm_provider}")
+        try:
+            if self.settings.llm_provider == "ollama":
+                logger.info(f"Connecting to Ollama: {self.settings.ollama_model} at {self.settings.ollama_base_url}")
+                return ChatOllama(
+                    model=self.settings.ollama_model,
+                    base_url=self.settings.ollama_base_url,
+                    temperature=0.7,
+                )
+            elif self.settings.llm_provider == "azure":
+                logger.info(f"Connecting to Azure OpenAI: {self.settings.azure_openai_model}")
+                return AzureChatOpenAI(
+                    model=self.settings.azure_openai_model,
+                    azure_endpoint=self.settings.azure_openai_endpoint,
+                    api_key=self.settings.azure_openai_api_key,
+                    api_version=self.settings.azure_openai_api_version,
+                    temperature=0.7,
+                )
+            else:
+                raise ValueError(f"Unsupported LLM provider: {self.settings.llm_provider}")
+        except Exception as e:
+            if self.settings.llm_provider == "ollama":
+                logger.error(f"Failed to connect to Ollama. Is 'ollama serve' running? Error: {e}")
+            elif self.settings.llm_provider == "azure":
+                logger.error(f"Failed to connect to Azure OpenAI. Check your credentials. Error: {e}")
+            raise
     
     def _get_session_history(self, session_id: str) -> List[Dict[str, str]]:
         """Get conversation history for a session."""
@@ -136,7 +145,14 @@ class LLMClient:
             return assistant_reply
             
         except Exception as e:
-            logger.error(f"Error processing chat for session {session_id}: {str(e)}")
+            logger.error(f"Chat failed for session {session_id}: {str(e)}")
+            
+            # Simple provider-specific hints
+            if self.settings.llm_provider == "ollama" and "connection" in str(e).lower():
+                logger.error("Hint: Make sure 'ollama serve' is running")
+            elif self.settings.llm_provider == "azure" and ("401" in str(e) or "unauthorized" in str(e).lower()):
+                logger.error("Hint: Check your Azure OpenAI API key")
+            
             raise
     
     def get_session_count(self) -> int:

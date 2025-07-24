@@ -7,11 +7,12 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 
-from .utils.env import get_settings, validate_provider_config, Settings
+from .utils.env import get_settings, Settings
 from .services.llm_client import LLMClient
 from .routers import inference
 from .schemas.response import HealthResponse
@@ -26,10 +27,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global variables for dependency injection
-_llm_client: LLMClient = None
-_settings: Settings = None
-_system_prompt: str = None
+# Global variables
+app_state = {
+    "llm_client": None,
+    "settings": None,
+    "system_prompt": None,
+    "is_healthy": False
+}
 
 
 def load_system_prompt() -> str:
@@ -51,53 +55,45 @@ def load_system_prompt() -> str:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager for startup and shutdown tasks."""
-    global _llm_client, _settings, _system_prompt
-    
     # Startup
     logger.info("Starting LLM Workshop API...")
     
     try:
         # Load configuration
-        _settings = get_settings()
-        validate_provider_config(_settings)
+        app_state["settings"] = get_settings()
         
         # Load system prompt
-        _system_prompt = load_system_prompt()
+        app_state["system_prompt"] = load_system_prompt()
         
         # Initialize LLM client
-        _llm_client = LLMClient(_settings, _system_prompt)
+        try:
+            app_state["llm_client"] = LLMClient(
+                app_state["settings"], 
+                app_state["system_prompt"]
+            )
+            
+            # Test the connection
+            provider_info = app_state["llm_client"].get_provider_info()
+            logger.info(f"✅ LLM client initialized: {provider_info['provider']} provider using model {provider_info['model']}")
+            app_state["is_healthy"] = True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize LLM client: {e}")
+            logger.warning("API will start in degraded mode - chat endpoints will return 503")
+            app_state["llm_client"] = None
+            app_state["is_healthy"] = False
         
-        # Setup router dependency injection
-        from .routers.inference import set_llm_client
-        set_llm_client(_llm_client)
-        
-        # Log startup info
-        provider_info = _llm_client.get_provider_info()
-        logger.info(f"API started successfully with {provider_info['provider']} provider using model {provider_info['model']}")
+        # Store state in app for access in routes
+        app.state.app_state = app_state
         
     except Exception as e:
-        logger.error(f"Failed to start application: {e}")
+        logger.error(f"Failed to load configuration: {e}")
         raise
     
     yield
     
     # Shutdown
     logger.info("Shutting down LLM Workshop API...")
-
-
-# Dependency injection functions
-def get_llm_client() -> LLMClient:
-    """Dependency injection for LLM client."""
-    if _llm_client is None:
-        raise HTTPException(status_code=500, detail="LLM client not initialized")
-    return _llm_client
-
-
-def get_app_settings() -> Settings:
-    """Dependency injection for app settings."""
-    if _settings is None:
-        raise HTTPException(status_code=500, detail="Application settings not initialized")
-    return _settings
 
 
 # Create FastAPI application
@@ -135,8 +131,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(inference.router)
+# Include routers with proper prefix
+app.include_router(
+    inference.router,
+    prefix="/v1",
+    tags=["chat"]
+)
 
 
 @app.get("/", summary="Root endpoint", description="Basic API information")
@@ -156,29 +156,45 @@ async def root():
     summary="Health check",
     description="Check API health and current configuration"
 )
-async def health_check(
-    settings: Settings = Depends(get_app_settings),
-    llm_client: LLMClient = Depends(get_llm_client)
-):
+async def health_check():
     """
     Health check endpoint providing system status and configuration info.
     
     Returns:
         HealthResponse with status, provider, and model information
     """
-    try:
-        provider_info = llm_client.get_provider_info()
-        
-        return HealthResponse(
-            status="healthy",
-            provider=provider_info["provider"],
-            model=provider_info["model"]
-        )
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        raise HTTPException(
-            status_code=503,
-            detail="Service unavailable"
-        )
+    settings = app_state["settings"]
+    
+    if not settings:
+        raise HTTPException(status_code=503, detail="Service not configured")
+    
+    # Build response based on health status
+    health_data = {
+        "status": "healthy" if app_state["is_healthy"] else "degraded",
+        "provider": settings.LLM_PROVIDER,
+        "model": settings.OLLAMA_MODEL if settings.LLM_PROVIDER == "ollama" else settings.AZURE_OPENAI_MODEL
+    }
+    
+    # Add details if degraded
+    if not app_state["is_healthy"]:
+        health_data["details"] = "LLM service not available"
+    
+    return HealthResponse(**health_data)
 
 
+# Error handlers
+@app.exception_handler(404)
+async def not_found_handler(request, exc):
+    """Handle 404 errors with helpful message."""
+    return JSONResponse(
+        status_code=404,
+        content={
+            "detail": "Not Found",
+            "available_endpoints": [
+                "/",
+                "/healthz",
+                "/v1/chat",
+                "/docs"
+            ]
+        }
+    )

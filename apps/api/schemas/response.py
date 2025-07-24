@@ -1,26 +1,20 @@
 """
-Pydantic schemas for API response validation.
+Response schemas for the LLM Workshop API.
 """
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
 class ChatResponse(BaseModel):
     """Response schema for chat endpoint."""
-    
-    session_id: str = Field(
-        ..., 
-        description="Session identifier echoed from the request"
-    )
-    reply: str = Field(
-        ..., 
-        description="The AI assistant's response message"
-    )
+    session_id: str = Field(..., description="Session identifier")
+    reply: str = Field(..., description="LLM-generated response")
     
     model_config = {
         "json_schema_extra": {
             "example": {
                 "session_id": "user-123-session-456",
-                "reply": "Python decorators are a way to modify or enhance functions..."
+                "reply": "I'd be happy to help you with that! Python is a versatile programming language..."
             }
         }
     }
@@ -28,19 +22,10 @@ class ChatResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Response schema for health check endpoint."""
-    
-    status: str = Field(
-        ..., 
-        description="Application health status"
-    )
-    provider: str = Field(
-        ..., 
-        description="Current LLM provider being used"
-    )
-    model: str = Field(
-        ..., 
-        description="Current model being used"
-    )
+    status: str = Field(..., description="Service health status", pattern="^(healthy|degraded|unhealthy)$")
+    provider: str = Field(..., description="LLM provider (ollama or azure)")
+    model: str = Field(..., description="Model being used")
+    details: Optional[str] = Field(None, description="Additional details if service is degraded")
     
     model_config = {
         "json_schema_extra": {
@@ -51,25 +36,4 @@ class HealthResponse(BaseModel):
             }
         }
     }
-
-
-class ErrorResponse(BaseModel):
-    """Response schema for error responses."""
     
-    error: str = Field(
-        ..., 
-        description="Error message describing what went wrong"
-    )
-    detail: str = Field(
-        default="", 
-        description="Additional error details if available"
-    )
-    
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "error": "Invalid request",
-                "detail": "session_id field is required"
-            }
-        }
-    }
