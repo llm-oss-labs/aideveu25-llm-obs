@@ -17,6 +17,8 @@ from .services.llm_client import LLMClient
 from .routers import inference
 from .schemas.response import HealthResponse
 
+from traceloop.sdk import Traceloop
+
 # Load environment variables
 load_dotenv()
 
@@ -34,6 +36,8 @@ app_state = {
     "system_prompt": None,
     "is_healthy": False
 }
+
+Traceloop.init()
 
 
 def load_system_prompt() -> str:
@@ -150,36 +154,36 @@ async def root():
     }
 
 
-@app.get(
-    "/healthz",
-    response_model=HealthResponse,
-    summary="Health check",
-    description="Check API health and current configuration"
-)
-async def health_check():
-    """
-    Health check endpoint providing system status and configuration info.
+# @app.get(
+#     "/healthz",
+#     response_model=HealthResponse,
+#     summary="Health check",
+#     description="Check API health and current configuration"
+# )
+# async def health_check():
+#     """
+#     Health check endpoint providing system status and configuration info.
     
-    Returns:
-        HealthResponse with status, provider, and model information
-    """
-    settings = app_state["settings"]
+#     Returns:
+#         HealthResponse with status, provider, and model information
+#     """
+#     settings = app_state["settings"]
     
-    if not settings:
-        raise HTTPException(status_code=503, detail="Service not configured")
+#     if not settings:
+#         raise HTTPException(status_code=503, detail="Service not configured")
     
-    # Build response based on health status
-    health_data = {
-        "status": "healthy" if app_state["is_healthy"] else "degraded",
-        "provider": settings.LLM_PROVIDER,
-        "model": settings.OLLAMA_MODEL if settings.LLM_PROVIDER == "ollama" else settings.AZURE_OPENAI_MODEL
-    }
+#     # Build response based on health status
+#     health_data = {
+#         "status": "healthy" if app_state["is_healthy"] else "degraded",
+#         "provider": settings.LLM_PROVIDER,
+#         "model": settings.OLLAMA_MODEL if settings.LLM_PROVIDER == "ollama" else settings.AZURE_OPENAI_MODEL
+#     }
     
-    # Add details if degraded
-    if not app_state["is_healthy"]:
-        health_data["details"] = "LLM service not available"
+#     # Add details if degraded
+#     if not app_state["is_healthy"]:
+#         health_data["details"] = "LLM service not available"
     
-    return HealthResponse(**health_data)
+#     return HealthResponse(**health_data)
 
 
 # Error handlers
