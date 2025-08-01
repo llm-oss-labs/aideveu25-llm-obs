@@ -1,0 +1,34 @@
+services:
+  llm-workshop-api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file: .env
+    restart: unless-stopped
+
+  aspire-dashboard:
+      image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:9.4.0
+      container_name: aspire-dashboard
+      ports:
+        - "18888:18888"   # Dashboard UI
+        - "18889:18889"    # OTLP gRPC endpoint
+        - "18890:18890"    # OTLP HTTP endpoint
+      restart: unless-stopped
+
+  otelcol:
+    build: ./apps/otel_col
+    container_name: otelcol
+    deploy:
+      resources:
+        limits:
+          memory: 125M
+    restart: unless-stopped
+    volumes:
+      - ./apps/otel_col/otel_config.yaml:/etc/otelcol-config.yml
+    ports:
+      - "4317:4317"     # OTLP gRPC receiver
+      - "4318:4318"     # OTLP http receiver
+    depends_on:
+      - aspire-dashboard

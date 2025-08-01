@@ -1,0 +1,39 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        include_metadata: true
+        endpoint: 0.0.0.0:4318
+      grpc:
+        include_metadata: true
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch: {}
+
+exporters:
+  # We use the OTLP exporter to send data to Aspire Dashboard over gRPC
+  otlp:
+    endpoint: aspire-dashboard:18889
+    tls:
+      insecure: true
+  azuremonitor:
+    connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
+
+  
+  # Adding debug exporter to see logs in the collector output
+  debug:
+    verbosity: detailed
+
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlp]
+    metrics:
+      receivers: [otlp]
+      exporters: [otlp]
+    logs:
+      receivers: [otlp]
+      exporters: [otlp]
