@@ -1,0 +1,9 @@
+{
+	"name": "Ubuntu",
+	"image": "mcr.microsoft.com/devcontainers/base:noble",
+	"features": {
+	},
+
+	"postCreateCommand": "curl -fsSL https://ollama.com/install.sh | sh",
+	"postStartCommand": "ollama serve &>/dev/null & sleep 5 && ollama pull phi3:latest && ollama run phi3:latest 'Hello' > /dev/null"
+}
