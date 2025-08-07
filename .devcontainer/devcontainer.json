@@ -1,7 +1,12 @@
 {
 	"name": "Ubuntu",
-	"image": "mcr.microsoft.com/devcontainers/base:noble",
+	"image": "mcr.microsoft.com/devcontainers/base:jammy",
+	// "mcr.microsoft.com/devcontainers/base:alpine" - demasiado lenta
+	// "mcr.microsoft.com/devcontainers/base:debian" - no estuvo mal
+	// "mcr.microsoft.com/devcontainers/base:noble" - esta me gustó
+	"features": {
+	},
 
 	"postCreateCommand": "curl -fsSL https://ollama.com/install.sh | sh",
-    "postStartCommand": "bash /workspaces/llm-observability-workshop/.devcontainer/startup.sh"
+	"postStartCommand": "ollama serve &>/dev/null & sleep 5 && ollama pull phi3:latest && ollama run phi3:latest 'Hello' > /dev/null"
 }
