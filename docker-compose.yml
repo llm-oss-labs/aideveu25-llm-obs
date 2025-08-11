@@ -1,12 +1,23 @@
 services:
   llm-workshop-api:
-    build: 
+    build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: apps/api/Dockerfile
     ports:
       - "8000:8000"
     env_file: .env
     restart: unless-stopped
+
+  llm-workshop-cli:
+    build:
+      context: .
+      dockerfile: apps/cli/Dockerfile
+    environment:
+      - API_BASE_URL=http://llm-workshop-api:8000/v1
+    depends_on:
+      - llm-workshop-api
+    stdin_open: true  # keep STDIN open for interactive CLI
+    tty: true         # allocate a pseudo-TTY for nice prompts
 
   aspire-dashboard:
       image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:9.4.0

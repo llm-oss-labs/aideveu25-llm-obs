@@ -154,36 +154,33 @@ async def root():
     }
 
 
-# @app.get(
-#     "/healthz",
-#     response_model=HealthResponse,
-#     summary="Health check",
-#     description="Check API health and current configuration"
-# )
-# async def health_check():
-#     """
-#     Health check endpoint providing system status and configuration info.
-    
-#     Returns:
-#         HealthResponse with status, provider, and model information
-#     """
-#     settings = app_state["settings"]
-    
-#     if not settings:
-#         raise HTTPException(status_code=503, detail="Service not configured")
-    
-#     # Build response based on health status
-#     health_data = {
-#         "status": "healthy" if app_state["is_healthy"] else "degraded",
-#         "provider": settings.LLM_PROVIDER,
-#         "model": settings.OLLAMA_MODEL if settings.LLM_PROVIDER == "ollama" else settings.AZURE_OPENAI_MODEL
-#     }
-    
-#     # Add details if degraded
-#     if not app_state["is_healthy"]:
-#         health_data["details"] = "LLM service not available"
-    
-#     return HealthResponse(**health_data)
+
+@app.get(
+    "/healthz",
+    response_model=HealthResponse,
+    summary="Health check",
+    description="Check API health and current configuration"
+)
+async def health_check():
+    """
+    Health check endpoint providing system status and configuration info.
+    Returns:
+        HealthResponse with status, provider, and model information
+    """
+    settings = app_state["settings"]
+    if not settings:
+        raise HTTPException(status_code=503, detail="Service not configured")
+
+    # Build response based on health status
+    health_data = {
+        "status": "healthy" if app_state["is_healthy"] else "degraded",
+        "provider": getattr(settings, "llm_provider", getattr(settings, "LLM_PROVIDER", "unknown")),
+        "model": getattr(settings, "ollama_model", getattr(settings, "OLLAMA_MODEL", None)) if getattr(settings, "llm_provider", getattr(settings, "LLM_PROVIDER", "ollama")) == "ollama" else getattr(settings, "azure_openai_model", getattr(settings, "AZURE_OPENAI_MODEL", None)),
+    }
+    # Add details if degraded
+    if not app_state["is_healthy"]:
+        health_data["details"] = "LLM service not available"
+    return HealthResponse(**health_data)
 
 
 # Error handlers
