@@ -81,8 +81,8 @@ make run
 ### Using Docker
 
 ```bash
-# Build the image
-docker build -t llm-workshop-api .
+# Build the API image
+docker build -f apps/api/Dockerfile -t llm-workshop-api .
 
 # Run the container
 docker run --rm -p 8000:8000 --env-file .env llm-workshop-api
@@ -142,7 +142,7 @@ llm-observability-workshop/
 │       └── env.py              # Environment configuration
 ├── pyproject.toml              # Poetry configuration
 ├── poetry.lock                 # Locked dependencies
-├── Dockerfile                  # Multi-stage Docker build
+├── apps/api/Dockerfile         # API Docker build
 ├── docker-compose.yml          # Docker compose configuration
 ├── .env.example                # Environment template
 └── Makefile                    # Development commands

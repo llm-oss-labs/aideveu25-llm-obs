@@ -1,4 +1,7 @@
-.PHONY: help install run test docker-build docker-run clean
+.PHONY: help install install-dev setup run test-api cli docker-build-api docker-build-all docker-run docker-up docker-down docker-logs docker-cli ollama-setup clean quickstart demo format lint
+
+DOCKER ?= docker
+DC ?= docker compose
 
 # Default target
 help: ## Show this help message
@@ -26,27 +29,38 @@ setup: install ## Setup environment from .env.example
 run: ## Run the API server (development mode)
 	poetry run uvicorn apps.api.main:app --reload --host 0.0.0.0 --port 8000
 
-# Testing
-test-api: ## Test API endpoints with curl
-	@echo "🧪 Testing health endpoint..."
-	@curl -s "http://localhost:8000/healthz" | python -m json.tool
+# Testing / Smoke
+test-api: ## Test Chat endpoint
 	@echo "\n🧪 Testing chat endpoint..."
 	@curl -s -X POST "http://localhost:8000/v1/chat" \
 		-H "Content-Type: application/json" \
 		-d '{"session_id": "test-session", "user_message": "Hello, how are you?"}' | python -m json.tool
 
+# CLI
+cli: ## Run the terminal chat client locally (Poetry env)
+	poetry run python apps/cli/main.py
+
 # Docker
-docker-build: ## Build Docker image
-	docker build -t llm-workshop-api .
+docker-build-api: ## Build API image (direct docker build)
+	$(DOCKER) build -f apps/api/Dockerfile -t llm-workshop-api .
 
-docker-run: ## Run Docker container
-	docker run --rm -p 8000:8000 --env-file .env llm-workshop-api
+docker-build-all: ## Build all images with compose
+	$(DC) build
 
-docker-up: ## Start with docker-compose
-	docker-compose up --build
+docker-run: ## Run API container (detached)
+	$(DOCKER) run -d --name llm-workshop-api --rm -p 8000:8000 --env-file .env llm-workshop-api
 
-docker-down: ## Stop docker-compose
-	docker-compose down
+docker-up: ## Start services with docker compose
+	$(DC) up --build -d
+
+docker-down: ## Stop services with docker compose
+	$(DC) down
+
+docker-logs: ## Tail compose logs
+	$(DC) logs -f
+
+docker-cli: ## Run the interactive CLI via docker compose
+	$(DC) run --rm llm-workshop-cli
 
 # Ollama helpers
 ollama-setup: ## Setup Ollama (pull phi3 model)
