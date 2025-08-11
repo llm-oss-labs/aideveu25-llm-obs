@@ -17,7 +17,7 @@ from .services.llm_client import LLMClient
 from .routers import inference
 from .schemas.response import HealthResponse
 
-from traceloop.sdk import Traceloop
+import openlit
 
 # Load environment variables
 load_dotenv()
@@ -37,7 +37,7 @@ app_state = {
     "is_healthy": False
 }
 
-Traceloop.init()
+openlit.init() # Open LIT
 
 
 def load_system_prompt() -> str:

@@ -17,8 +17,6 @@ exporters:
     endpoint: aspire-dashboard:18889
     tls:
       insecure: true
-  azuremonitor:
-    connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
 
   
   # Adding debug exporter to see logs in the collector output
