@@ -52,12 +52,10 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000" # Grafana UI
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=false
     volumes:
       - ./apps/grafana/provisioning:/etc/grafana/provisioning
-      #- grafana-data:/var/lib/grafana
+      - ./apps/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+    # - grafana-data:/var/lib/grafana
     depends_on:
       - tempo
       - prometheus
