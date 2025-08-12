@@ -1,0 +1,7 @@
+apiVersion: 1
+
+# Set the default home dashboard for the Grafana org
+preferences:
+  homeDashboardUID: llm-observability
+  theme: light
+  timezone: browser
