@@ -16,17 +16,17 @@ services:
       - API_BASE_URL=http://llm-workshop-api:8000/v1
     depends_on:
       - llm-workshop-api
-    stdin_open: true  # keep STDIN open for interactive CLI
-    tty: true         # allocate a pseudo-TTY for nice prompts
+    stdin_open: true # keep STDIN open for interactive CLI
+    tty: true # allocate a pseudo-TTY for nice prompts
 
   aspire-dashboard:
-      image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:9.4.0
-      container_name: aspire-dashboard
-      ports:
-        - "18888:18888"   # Dashboard UI
-        - "18889:18889"    # OTLP gRPC endpoint
-        - "18890:18890"    # OTLP HTTP endpoint
-      restart: unless-stopped
+    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:9.4.0
+    container_name: aspire-dashboard
+    ports:
+      - "18888:18888" # Dashboard UI
+      - "18889:18889" # OTLP gRPC endpoint
+      - "18890:18890" # OTLP HTTP endpoint
+    restart: unless-stopped
 
   otelcol:
     build: ./apps/otel_col
@@ -39,7 +39,19 @@ services:
     volumes:
       - ./apps/otel_col/otel_config.yaml:/etc/otelcol-config.yml
     ports:
-      - "4317:4317"     # OTLP gRPC receiver
-      - "4318:4318"     # OTLP http receiver
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP http receiver
+      # - "9464:9464"   # Optional: expose Prometheus scrape endpoint to host
     depends_on:
       - aspire-dashboard
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    depends_on:
+      - otelcol
+    ports:
+      - "9090:9090" # Prometheus UI
+    volumes:
+      - ./apps/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro

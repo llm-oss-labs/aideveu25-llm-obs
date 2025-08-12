@@ -17,11 +17,15 @@
 	// },
 	// Make local services reachable
 	"forwardPorts": [
-		8000
+		8000,
+		9090
 	],
 	"portsAttributes": {
 		"8000": {
 			"label": "FastAPI Backend"
+		},
+		"9090": {
+			"label": "Prometheus"
 		}
 	},
 	// VS Code ergonomics

@@ -25,15 +25,24 @@ exporters:
   debug:
     verbosity: detailed
 
+  # Expose metrics in Prometheus format for scraping
+  prometheus:
+    endpoint: 0.0.0.0:9464
+    resource_to_telemetry_conversion:
+      enabled: true
+
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
+      processors: [batch]
       exporters: [otlp]
     metrics:
       receivers: [otlp]
-      exporters: [otlp]
+      processors: [batch]
+      exporters: [otlp, prometheus]
     logs:
       receivers: [otlp]
+      processors: [batch]
       exporters: [otlp]
