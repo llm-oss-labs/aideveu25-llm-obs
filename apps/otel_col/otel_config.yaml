@@ -17,6 +17,13 @@ exporters:
     endpoint: aspire-dashboard:18889
     tls:
       insecure: true
+  
+  # Export traces to Tempo
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  
   azuremonitor:
     connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
 
@@ -37,7 +44,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlp, otlp/tempo]
     metrics:
       receivers: [otlp]
       processors: [batch]

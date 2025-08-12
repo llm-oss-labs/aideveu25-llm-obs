@@ -44,6 +44,35 @@ services:
       # - "9464:9464"   # Optional: expose Prometheus scrape endpoint to host
     depends_on:
       - aspire-dashboard
+      - tempo
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000" # Grafana UI
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=false
+    volumes:
+      - ./apps/grafana/provisioning:/etc/grafana/provisioning
+      #- grafana-data:/var/lib/grafana
+    depends_on:
+      - tempo
+      - prometheus
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    restart: unless-stopped
+    ports:
+      - "3200:3200" # Tempo HTTP API
+      - "9095:9095" # Tempo gRPC API
+    volumes:
+      - ./apps/grafana_tempo/tempo.yaml:/etc/tempo.yaml:ro
+      #- tempo-data:/tmp/tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
 
   prometheus:
     image: prom/prometheus:latest
@@ -55,3 +84,7 @@ services:
       - "9090:9090" # Prometheus UI
     volumes:
       - ./apps/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+volumes:
+  tempo-data:
+  grafana-data:
