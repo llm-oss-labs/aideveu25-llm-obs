@@ -12,11 +12,12 @@ processors:
   batch: {}
 
 exporters:
-  # We use the OTLP exporter to send data to Aspire Dashboard over gRPC
-  otlp:
-    endpoint: aspire-dashboard:18889
+  # Export traces to Tempo
+  otlp/tempo:
+    endpoint: tempo:4317
     tls:
       insecure: true
+  
   azuremonitor:
     connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
 
@@ -25,15 +26,20 @@ exporters:
   debug:
     verbosity: detailed
 
+  # Expose metrics in Prometheus format for scraping
+  prometheus:
+    endpoint: 0.0.0.0:9464
+    resource_to_telemetry_conversion:
+      enabled: true
+
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlp]
+      processors: [batch]
+      exporters: [otlp/tempo]
     metrics:
       receivers: [otlp]
-      exporters: [otlp]
-    logs:
-      receivers: [otlp]
-      exporters: [otlp]
+      processors: [batch]
+      exporters: [prometheus]

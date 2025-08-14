@@ -1,0 +1,489 @@
+{
+    "__inputs": [],
+    "__requires": [
+        {
+            "type": "grafana",
+            "id": "grafana",
+            "name": "Grafana",
+            "version": "10.x"
+        },
+        {
+            "type": "datasource",
+            "id": "prometheus",
+            "name": "Prometheus",
+            "version": "1.0.0"
+        }
+    ],
+    "uid": "llm-observability",
+    "title": "LLM Observability (GenAI & LangChain)",
+    "tags": [
+        "llm",
+        "genai",
+        "observability"
+    ],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "5s",
+    "time": {
+        "from": "now-5m",
+        "to": "now"
+    },
+    "templating": {
+        "list": [
+            {
+                "name": "datasource",
+                "type": "datasource",
+                "query": "prometheus",
+                "refresh": 1,
+                "current": {},
+                "hide": 0
+            },
+            {
+                "name": "job",
+                "type": "query",
+                "datasource": "$datasource",
+                "query": "label_values(up, job)",
+                "refresh": 2,
+                "includeAll": true,
+                "multi": true
+            },
+            {
+                "name": "instance",
+                "type": "query",
+                "datasource": "$datasource",
+                "query": "label_values(up{job=~\"$job\"}, instance)",
+                "refresh": 2,
+                "includeAll": true,
+                "multi": true
+            },
+            {
+                "name": "operation",
+                "type": "query",
+                "datasource": "$datasource",
+                "query": "label_values(gen_ai_client_operation_duration_seconds_count, operation)",
+                "refresh": 2,
+                "includeAll": true,
+                "multi": true
+            },
+            {
+                "name": "provider",
+                "type": "query",
+                "datasource": "$datasource",
+                "query": "label_values(gen_ai_client_operation_duration_seconds_count, provider)",
+                "refresh": 2,
+                "includeAll": true,
+                "multi": true
+            },
+            {
+                "name": "model",
+                "type": "query",
+                "datasource": "$datasource",
+                "query": "label_values(gen_ai_client_operation_duration_seconds_count, model)",
+                "refresh": 2,
+                "includeAll": true,
+                "multi": true
+            }
+        ]
+    },
+    "panels": [
+        {
+            "type": "row",
+            "title": "Overview",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            }
+        },
+        {
+            "type": "stat",
+            "title": "Requests per minute",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 0,
+                "y": 1
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "60 * sum(rate(gen_ai_client_operation_duration_seconds_count{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m]))",
+                    "legendFormat": "rpm",
+                    "refId": "A"
+                }
+            ],
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            }
+        },
+        {
+            "type": "stat",
+            "title": "P50 latency (s)",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 6,
+                "y": 1
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.5, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p50",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "P90 latency (s)",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 12,
+                "y": 1
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.9, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p90",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "P99 latency (s)",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 18,
+                "y": 1
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.99, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p99",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "row",
+            "title": "Latency & Throughput",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 7
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Request rate (req/s)",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 8
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "sum by (operation, provider, model) (rate(gen_ai_client_operation_duration_seconds_count{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m]))",
+                    "legendFormat": "{{operation}} | {{provider}} | {{model}}",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "timeseries",
+            "title": "Latency quantiles (s)",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 8
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.5, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p50"
+                },
+                {
+                    "expr": "histogram_quantile(0.9, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p90"
+                },
+                {
+                    "expr": "histogram_quantile(0.99, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p99"
+                }
+            ]
+        },
+        {
+            "type": "row",
+            "title": "Tokens & Time to First Token",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 16
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Token usage (tokens/s)",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 17
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "sum by (operation, provider, model) (rate(gen_ai_client_token_usage_sum{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m]))",
+                    "legendFormat": "{{operation}} | {{provider}} | {{model}}",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "timeseries",
+            "title": "Time to first token quantiles (s)",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 17
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.5, sum by (le) (rate(gen_ai_server_time_to_first_token_seconds_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p50"
+                },
+                {
+                    "expr": "histogram_quantile(0.9, sum by (le) (rate(gen_ai_server_time_to_first_token_seconds_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p90"
+                },
+                {
+                    "expr": "histogram_quantile(0.99, sum by (le) (rate(gen_ai_server_time_to_first_token_seconds_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p99"
+                }
+            ]
+        },
+        {
+            "type": "row",
+            "title": "Errors",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 25
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Error rate (per s)",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 26
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "sum by (operation, provider, model) (rate(gen_ai_client_operation_duration_seconds_count{status=\"error\",job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m]))",
+                    "legendFormat": "{{operation}} | {{provider}} | {{model}}",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "Error percentage",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 26
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "100 * (sum(rate(gen_ai_client_operation_duration_seconds_count{status=\"error\",job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])) / sum(rate(gen_ai_client_operation_duration_seconds_count{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "error %",
+                    "refId": "A"
+                }
+            ],
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            }
+        },
+        {
+            "type": "row",
+            "title": "Streaming Completions",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 34
+            }
+        },
+        {
+            "type": "stat",
+            "title": "Avg streaming generation time (s)",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 0,
+                "y": 35
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "sum(rate(llm_chat_completions_streaming_time_to_generate_seconds_sum{job=~\"$job\",instance=~\"$instance\"}[5m])) / sum(rate(llm_chat_completions_streaming_time_to_generate_seconds_count{job=~\"$job\",instance=~\"$instance\"}[5m]))",
+                    "legendFormat": "avg",
+                    "refId": "A"
+                }
+            ],
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Streaming generation time quantiles (s)",
+            "gridPos": {
+                "h": 8,
+                "w": 18,
+                "x": 6,
+                "y": 35
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.5, sum by (le) (rate(llm_chat_completions_streaming_time_to_generate_seconds_bucket{job=~\"$job\",instance=~\"$instance\"}[5m])))",
+                    "legendFormat": "p50"
+                },
+                {
+                    "expr": "histogram_quantile(0.9, sum by (le) (rate(llm_chat_completions_streaming_time_to_generate_seconds_bucket{job=~\"$job\",instance=~\"$instance\"}[5m])))",
+                    "legendFormat": "p90"
+                },
+                {
+                    "expr": "histogram_quantile(0.99, sum by (le) (rate(llm_chat_completions_streaming_time_to_generate_seconds_bucket{job=~\"$job\",instance=~\"$instance\"}[5m])))",
+                    "legendFormat": "p99"
+                }
+            ]
+        },
+        {
+            "type": "row",
+            "title": "Tokens per Request",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 43
+            }
+        },
+        {
+            "type": "stat",
+            "title": "Avg tokens per request",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 0,
+                "y": 44
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "sum(rate(gen_ai_client_token_usage_sum{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])) / sum(rate(gen_ai_client_token_usage_count{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m]))",
+                    "legendFormat": "avg tokens",
+                    "refId": "A"
+                }
+            ],
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Tokens per request quantiles",
+            "gridPos": {
+                "h": 8,
+                "w": 18,
+                "x": 6,
+                "y": 50
+            },
+            "datasource": "$datasource",
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.5, sum by (le) (rate(gen_ai_client_token_usage_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p50"
+                },
+                {
+                    "expr": "histogram_quantile(0.9, sum by (le) (rate(gen_ai_client_token_usage_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p90"
+                },
+                {
+                    "expr": "histogram_quantile(0.99, sum by (le) (rate(gen_ai_client_token_usage_bucket{job=~\"$job\",instance=~\"$instance\",operation=~\"$operation\",provider=~\"$provider\",model=~\"$model\"}[5m])))",
+                    "legendFormat": "p99"
+                }
+            ]
+        }
+    ]
+}
