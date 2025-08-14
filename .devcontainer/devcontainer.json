@@ -8,17 +8,23 @@
 		"ghcr.io/devcontainers/features/python:1": {
 			"version": "3.11"
 		},
-		"ghcr.io/devcontainers-extra/features/poetry:latest": {}
+		"ghcr.io/devcontainers-extra/features/poetry:latest": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {}
 	},
 	// Use non-root dev user with docker group configured by the feature
 	"remoteUser": "vscode",
-	// "containerEnv": {
-	// 	"POETRY_VIRTUALENVS_IN_PROJECT": "true"
-	// },
+	// Minimum machine size for GitHub Codespaces (users can select larger machines)
+	"hostRequirements": {
+		"cpus": 8,
+		"memory": "32gb",
+		"storage": "64gb"
+	},
 	// Make local services reachable
 	"forwardPorts": [
 		8000,
-		9090
+		9090,
+		3000,
+		3200
 	],
 	"portsAttributes": {
 		"8000": {
@@ -26,6 +32,12 @@
 		},
 		"9090": {
 			"label": "Prometheus"
+		},
+		"3000": {
+			"label": "Grafana"
+		},
+		"3200": {
+			"label": "Tempo"
 		}
 	},
 	// VS Code ergonomics
@@ -36,7 +48,8 @@
 				"ms-python.vscode-pylance",
 				"ms-azuretools.vscode-docker",
 				"ms-python.black-formatter",
-				"ms-python.isort"
+				"ms-python.isort",
+				"GitHub.copilot-chat"
 			],
 			"settings": {
 				"python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
