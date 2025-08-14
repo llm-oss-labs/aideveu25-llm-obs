@@ -9,6 +9,8 @@ if ! command -v ollama >/dev/null 2>&1; then
 	exit 0
 fi
 
+export OLLAMA_HOST="0.0.0.0:11434"
+
 # Start Ollama service in the background if not already running
 if ! pgrep -x "ollama" >/dev/null 2>&1; then
 	log "Starting Ollama daemon..."
