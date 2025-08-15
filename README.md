@@ -1,143 +1,229 @@
-# LLM Observability Workshop
+# 🕵️‍♂️ Observability Without Oversharing: Privacy-Conscious Telemetry for LLMs
 
-A minimal FastAPI + LangChain and terminal CLI for LLM integration demos. Supports Ollama (local) and Azure OpenAI, with session-based chat, and Docker/Poetry dev flows.
+Welcome to the hands-on workshop delivered at **AI_dev EU 2025** in Amsterdam! This repository contains everything you need to follow along.
 
-## Features
-- Ollama or Azure OpenAI backend (switch via `.env`)
-- Session-based chat with rolling history
-- Terminal chat CLI (local or Docker)
-- Docker Compose for API, CLI, and observability
-- Makefile for common dev/test/build tasks
+- **Talk Page**: [https://sched.co/25TuD](https://sched.co/25TuD)
 
-## Quickstart
+In this 1-hour workshop, you'll learn how to achieve robust observability for Large Language Models (LLMs) while safeguarding sensitive data. As LLMs become integral to production systems, monitoring their performance, usage, and costs is essential—but so is protecting user privacy! This session addresses these challenges using a powerful stack of open-source tools.
 
-### 1. Clone & Install
+Join us to gain practical skills in ethical AI monitoring and contribute to the future of responsible AI observability!
+
+## ✨ What You'll Use
+
+This project provides a complete environment to explore LLM observability:
+
+- **LLM Backend**: Switch between `Ollama` (local) or `Azure OpenAI` (cloud).
+- **Chat Interface**: A session-based chat CLI with rolling history.
+- **Observability Stack**:
+  - **OpenTelemetry**: For generating and collecting telemetry data.
+  - **Prometheus**: For metrics and alerting.
+  - **Grafana Tempo**: For trace storage and retrieval.
+  - **Grafana**: For beautiful, pre-configured dashboards.
+- **Containerized Services**: The entire stack runs in Docker, managed with Docker Compose.
+- **Simplified Workflow**: A `Makefile` provides simple commands for all common actions.
+
+---
+
+## 🚀 Quick Start (GitHub Codespaces)
+
+The easiest way to get started is with GitHub Codespaces, which provides a pre-configured cloud-based development environment.
+
+1.  **Create a Codespace**:
+    - Open this repository on GitHub.
+    - Click the green **< > Code** button.
+    - Go to the **Codespaces** tab and click **Create codespace on main**.
+
+2.  **Wait for Initialization**: The dev container will set up Docker and all necessary tools automatically.
+
+3.  **Create Your Environment File**:
+    ```bash
+    cp .env.example .env
+    ```
+
+4.  **Build and Start the Stack**:
+    ```bash
+    make docker-up
+    ```
+
+5.  **Chat with the LLM**:
+    ```bash
+    make docker-cli
+    ```
+
+> **Note for Codespaces Users**: Ollama is pre-installed and running at `http://localhost:11434`. The containers are automatically configured to access it, so no extra setup is needed!
+
+---
+
+## 💻 Alternative: Local Dev Container
+
+If you prefer to run this project locally, you can use VS Code Dev Containers. The initial setup may take longer as it builds the required Docker images on your machine.
+
+**Requirements**:
+- Visual Studio Code
+- Docker Desktop
+- The [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) for VS Code.
+
+**Steps**:
+1. Clone this repository and open the folder in VS Code.
+2. When prompted, click **Reopen in Container**. (Or, open the Command Palette and select `Dev Containers: Reopen in Container`).
+3. In the dev container's terminal, set up your environment and start the stack:
+   ```bash
+   cp .env.example .env
+   make docker-up
+   make docker-cli
+   ```
+
+> **Note for Local Dev Users**: Ensure Ollama is running on your host machine (e.g., by running `ollama serve`). The default `.env` configuration should work out-of-the-box.
+
+---
+
+## ▶️ How to Use the Stack
+
+### Start All Services
+
+This command builds the Docker images (if they don't exist) and starts all services in the background.
 
 ```bash
-git clone https://github.com/joaquinrz/llm-observability-workshop.git
-cd llm-observability-workshop
-poetry install
-cp .env.example .env  # then edit .env for your provider
-```
-
-### 2. Run API (dev mode)
-
-```bash
-make run
-# or
-poetry run uvicorn apps.api.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### 3. Run CLI (local)
-
-```bash
-make cli
-# or
-poetry run python apps/cli/main.py
-```
-
-### 4. Run with Docker Compose (Recommended)
-
-```bash
-docker compose up --build -d
-# or
 make docker-up
 ```
 
-API: http://localhost:8000  
-CLI: `docker compose run --rm llm-workshop-cli`
+Once running, you can access the following services (Codespaces will prompt you to forward the ports):
 
-## API Endpoints
+- **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **API Health Check**: [http://localhost:8000/healthz](http://localhost:8000/healthz)
+- **Grafana Dashboard**: [http://localhost:3000](http://localhost:3000) (Anonymous admin is enabled, and a default dashboard is preloaded).
 
-- `GET /` — Root info
-- `GET /healthz` — Health check (status, provider, model)
-- `POST /v1/chat` — Chat (JSON: `session_id`, `user_message`)
+### Use the Terminal CLI
 
-### Example: Health Check
-
-```bash
-curl -s http://localhost:8000/healthz | python -m json.tool
-```
-
-### Example: Chat
+After the stack is running, open the interactive chat CLI:
 
 ```bash
-curl -s -X POST http://localhost:8000/v1/chat \
-  -H "Content-Type: application/json" \
-  -d '{"session_id": "test-session", "user_message": "Hello!"}' | python -m json.tool
+make docker-cli
 ```
 
-## Project Structure
+This command will either attach to an existing CLI container or create a new one. Type your messages to chat with the model, and press `Ctrl+C` to exit.
 
-```text
-llm-observability-workshop/
-├── apps/api/           # FastAPI app (main.py, routers, services, schemas, config)
-│   └── Dockerfile      # API Docker build
-├── apps/cli/           # Terminal chat client (main.py, Dockerfile)
-├── apps/otel_col/      # OpenTelemetry collector config
-├── pyproject.toml      # Poetry config (shared)
-├── docker-compose.yml  # Compose for API, CLI, otel
-├── Makefile            # Dev/build/test helpers
-├── .env.example        # Env template
-└── ...
+---
+
+## ⚙️ Configuration
+
+You can customize the application by editing the `.env` file.
+
+### LLM Provider
+
+Choose between `ollama` (default) and `azure`.
+
+```env
+# LLM Provider Selection (ollama | azure)
+LLM_PROVIDER=ollama
+
+# --- Ollama Settings ---
+OLLAMA_MODEL=phi3
+OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-## Makefile Highlights
+### Optional: Azure OpenAI
 
-- `make run` — Start API (dev, reload)
-- `make cli` — Run CLI locally
-- `make docker-up` — Start all services (API, CLI, otel)
-- `make docker-cli` — Run CLI in Docker
-- `make test-api` — Smoke test root & chat endpoints
-- `make format` / `make lint` — Code quality
-- `make clean` — Remove Python cache
+If you want to use Azure, update your `.env` file with the following settings:
 
-## Provider Setup
+```env
+LLM_PROVIDER=azure
 
-### Ollama (local)
-1. [Install Ollama](https://ollama.com)
-2. Start the server:
+# --- Azure OpenAI Settings ---
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_API_KEY=your-api-key
+AZURE_OPENAI_MODEL=gpt-4o-mini
+# AZURE_OPENAI_API_VERSION=2024-02-15-preview  # (Default)
+```
 
-   ```bash
-   ollama serve
-   ```
+---
 
-3. Pull the model:
+## 🔍 Project Details
 
-   ```bash
-   ollama pull phi3
-   ```
+<details>
+<summary><strong>📂 Project Structure</strong></summary>
 
-4. Set in `.env`:
+```
+.
+├── apps/
+│   ├── api/                  # FastAPI app
+│   │   ├── main.py
+│   │   ├── Dockerfile
+│   │   ├── config/system_prompt.txt
+│   │   ├── routers/inference.py
+│   │   ├── schemas/{request.py,response.py}
+│   │   ├── services/llm_client.py
+│   │   └── utils/env.py
+│   ├── cli/                  # Terminal chat client
+│   │   ├── main.py
+│   │   └── Dockerfile
+│   ├── otel_col/             # OpenTelemetry Collector
+│   │   ├── Dockerfile
+│   │   └── otel_config.yaml
+│   ├── grafana/              # Grafana config & dashboards
+│   │   ├── grafana.ini
+│   │   └── dashboards/llm_observability.json
+│   ├── grafana_tempo/        # Tempo config
+│   │   └── tempo.yaml
+│   └── prometheus/           # Prometheus config
+│       └── prometheus.yml
+├── docker-compose.yml
+├── docker-compose.override.yml
+├── Makefile
+├── .env.example
+├── pyproject.toml
+└── README.md
+```
+</details>
 
-   ```text
-   LLM_PROVIDER=ollama
-   OLLAMA_MODEL=phi3
-   ```
+<details>
+<summary><strong>📜 Makefile Commands</strong></summary>
 
-### Azure OpenAI
-1. Set in `.env`:
+- `make help`: List all available commands.
+- `make docker-up`: Build and start all services.
+- `make docker-logs`: Tail logs from all services.
+- `make docker-cli`: Start the interactive CLI container.
+- `make docker-ps`: List running services.
+- `make docker-down`: Stop and remove all services.
+- `make docker-reset`: Nuke the entire stack (services, networks, and volumes).
+- `make docker-api-sh`: Open a shell inside the API container.
+- `make docker-rebuild-nocache`: Rebuild images without using the cache.
+</details>
 
-   ```text
-   LLM_PROVIDER=azure
-   AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-   AZURE_OPENAI_API_KEY=your-api-key
-   AZURE_OPENAI_MODEL=gpt-4o-mini
-   ```
+<details>
+<summary><strong>🌐 API Endpoints</strong></summary>
 
-## Troubleshooting
+- `GET /`: Root info.
+- `GET /healthz`: Health status (provider, model).
+- `POST /v1/chat`: The main chat endpoint used by the CLI.
+</details>
 
-- **Health check fails:** Check `.env` and provider status, then restart API.
-- **Ollama not running:** `ollama serve` and `ollama pull phi3`.
-- **Port in use:** Change port in `.env` and Makefile.
-- **Poetry issues:**
+<details>
+<summary><strong>🔑 Environment Variables</strong></summary>
 
-  ```bash
-  export PATH="$HOME/.local/bin:$PATH"
-  poetry cache clear --all pypi
-  rm poetry.lock && poetry install
-  ```
+The most relevant settings from `.env`:
 
-## License
+- `LLM_PROVIDER`: `ollama` | `azure` (default: `ollama`)
+- `OLLAMA_MODEL`: (default: `phi3`)
+- `OLLAMA_BASE_URL`: (default: `http://localhost:11434`)
+- `AZURE_OPENAI_MODEL`: (example: `gpt-4o-mini`)
+- `AZURE_OPENAI_ENDPOINT`
+- `AZURE_OPENAI_API_KEY`
+- `AZURE_OPENAI_API_VERSION`: (default: `2024-02-15-preview`)
+- `LOG_LEVEL`: (default: `INFO`)
+</details>
 
-Educational use for LLM Observability Workshop.
+---
+
+## 🛠️ Troubleshooting
+
+- **Health Check Degraded**: Check your `.env` provider settings and ensure the chosen backend (Ollama or Azure) is reachable. Restart the stack with `make docker-down && make docker-up`.
+- **Ollama in Codespaces**: The first chat may be slow if the model (`phi3`) needs to be downloaded.
+- **Ports Not Opening**: If ports 8000 (API) or 3000 (Grafana) aren't forwarded in Codespaces, open them manually from the **Ports** tab.
+- **Stuck Containers**: If something seems wrong, run `make docker-reset` to completely reset the environment.
+
+---
+
+## 📄 License
+
+This project is licensed under the terms of the [LICENSE](LICENSE) file.
