@@ -13,6 +13,12 @@
 	},
 	// Use non-root dev user with docker group configured by the feature
 	"remoteUser": "vscode",
+	
+	"hostRequirements": {
+		"cpus": 8,
+		"memory": "32gb",
+		"storage": "64gb"
+	},
 
 	// Make local services reachable
 	"forwardPorts": [
