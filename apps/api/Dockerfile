@@ -7,10 +7,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN pip install --no-cache-dir "poetry==$POETRY_VERSION" \
- && poetry config virtualenvs.create false
+    && poetry config virtualenvs.create false
 
 COPY pyproject.toml poetry.lock* ./
-RUN poetry install --only=main --no-root --no-ansi
+RUN poetry lock --no-update \
+    && poetry install --with pii --no-root --no-ansi \
+    && python -m spacy download en_core_web_lg
 
 COPY apps/api ./apps/api
 
