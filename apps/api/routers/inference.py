@@ -6,6 +6,7 @@ from typing import Dict, List
 from fastapi import APIRouter, HTTPException, Request
 from apps.api.schemas.request import ChatRequest
 from apps.api.schemas.response import ChatResponse
+from apps.api.utils.pii_masker import PIIMasker
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,15 @@ async def chat(request: ChatRequest, app_request: Request):
             detail="LLM service unavailable. Please check your configuration."
         )
     
+    # Mask PII in user message before processing
+    user_message = request.user_message
+    try:
+        pii_masking_enabled = True if settings is None else getattr(settings, "pii_masking_enabled", True)
+        if pii_masking_enabled:
+            user_message = PIIMasker.get_instance().mask(user_message)
+    except Exception as e:
+        logger.warning(f"PII masking failed, proceeding with original message: {e}")
+    
     try:
         # Get or create session
         if request.session_id not in sessions:
@@ -49,7 +59,7 @@ async def chat(request: ChatRequest, app_request: Request):
         # Add user message to session
         sessions[request.session_id].append({
             "role": "user",
-            "content": request.user_message
+            "content": user_message
         })
         
         logger.info(f"Processing chat for session {request.session_id}")
@@ -57,7 +67,7 @@ async def chat(request: ChatRequest, app_request: Request):
         # Generate response using the client's chat method
         reply = await llm_client.chat(
             session_id=request.session_id,
-            user_message=request.user_message
+            user_message=user_message
         )
         
         # Add assistant response to session
