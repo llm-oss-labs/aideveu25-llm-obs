@@ -11,21 +11,20 @@
 		"ghcr.io/devcontainers-extra/features/poetry:latest": {},
 		"ghcr.io/devcontainers/features/github-cli:1": {}
 	},
-	// Use non-root dev user with docker group configured by the feature
+	// Use non-root dev user
 	"remoteUser": "vscode",
-	
 	"hostRequirements": {
 		"cpus": 8,
 		"memory": "32gb",
 		"storage": "64gb"
 	},
-
 	// Make local services reachable
 	"forwardPorts": [
 		8000,
 		9090,
 		3000,
-		3200
+		3200,
+		11434
 	],
 	"portsAttributes": {
 		"8000": {
@@ -39,7 +38,14 @@
 		},
 		"3200": {
 			"label": "Tempo"
+		},
+		"11434": {
+			"label": "Ollama"
 		}
+	},
+	"containerEnv": {
+		"OLLAMA_HOST": "0.0.0.0:11434",
+		"OLLAMA_MODEL": "phi3:latest"
 	},
 	// VS Code ergonomics
 	"customizations": {
@@ -63,7 +69,8 @@
 			}
 		}
 	},
-	"onCreateCommand": "poetry install --no-interaction",
-	"postCreateCommand": "curl -fsSL https://ollama.com/install.sh | sudo -E sh",
-	"postStartCommand": "/bin/bash .devcontainer/startup.sh"
+	// Prebuild-friendly: install deps, install Ollama, clean caches
+	"onCreateCommand": "/bin/bash .devcontainer/onCreate.sh",
+	// // Keep runtime startup lightweight
+	"postStartCommand": "/bin/bash .devcontainer/postStart.sh"
 }
