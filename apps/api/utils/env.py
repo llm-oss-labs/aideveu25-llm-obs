@@ -67,13 +67,7 @@ class Settings(BaseSettings):
         default=8000, 
         env="APP_PORT",
         description="Application port"
-    )
-    pii_masking_enabled: bool = Field(
-        default=True,
-        env="PII_MASKING_ENABLED",
-        description="Enable Presidio-based PII masking on incoming user text"
-    )
-    
+    )    
     model_config = {
         "env_file": ".env",
         "case_sensitive": False
