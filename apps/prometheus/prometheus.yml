@@ -1,9 +1,2 @@
-global:
-  scrape_interval: 10s
-  evaluation_interval: 10s
-
-scrape_configs:
-  # Scrape the OpenTelemetry Collector's Prometheus exporter endpoint
-  - job_name: 'otel-collector'
-    static_configs:
-      - targets: ['otelcol:9464']
+# This is where you paste code from the third Github gist
+# https://gist.github.com/aminespinoza10/da7701f8519752282605888c336f2d8f
