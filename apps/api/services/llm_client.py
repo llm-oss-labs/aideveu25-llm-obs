@@ -1,13 +1,16 @@
 """
 LLM client service for handling both Ollama and Azure OpenAI providers.
 Provides a unified interface for LLM interactions with provider-specific implementations.
+
+Uses OpenAI-compatible APIs for both providers to ensure stable OpenLit instrumentation:
+- Ollama: Routes through Ollama's OpenAI-compatible /v1 endpoint
+- Azure: Uses native Azure OpenAI client
 """
 import logging
 import os
 from typing import Dict, List, Any
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from langchain_ollama import ChatOllama
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
 
 from ..utils.env import Settings
 
@@ -40,15 +43,25 @@ class LLMClient:
         logger.info(f"Initialized LLM client with provider: {settings.llm_provider}")
     
     def _initialize_client(self):
-        """Initialize the appropriate LangChain client based on provider."""
+        """
+        Initialize the appropriate LangChain client based on provider.
+        
+        For Ollama: Uses OpenAI-compatible endpoint (/v1) to leverage stable OpenLit OpenAI instrumentation
+        For Azure: Uses native Azure OpenAI client with direct instrumentation
+        
+        Both providers have streaming explicitly disabled for reliable telemetry.
+        """
         try:
             if self.settings.llm_provider == "ollama":
-                logger.info(f"Connecting to Ollama: {self.settings.ollama_model} at {self.settings.ollama_base_url}")
-                return ChatOllama(
+                logger.info(f"Connecting to Ollama via OpenAI-compatible API: {self.settings.ollama_model} at {self.settings.ollama_base_url}")
+                # Route through Ollama's OpenAI-compatible /v1 endpoint
+                # This avoids OpenLit's native Ollama instrumentation bugs while maintaining full telemetry
+                return ChatOpenAI(
                     model=self.settings.ollama_model,
-                    base_url=self.settings.ollama_base_url,
-                    streaming=False,
+                    base_url=f"{self.settings.ollama_base_url.rstrip('/')}/v1",
+                    api_key="ollama",  # Dummy key required by OpenAI client
                     temperature=0.7,
+                    streaming=False,  # Explicit non-streaming for stable telemetry
                 )
             elif self.settings.llm_provider == "azure":
                 logger.info(f"Connecting to Azure OpenAI: {self.settings.azure_openai_model}")
@@ -58,7 +71,7 @@ class LLMClient:
                     api_key=self.settings.azure_openai_api_key,
                     api_version=self.settings.azure_openai_api_version,
                     temperature=0.7,
-                    streaming=False,
+                    streaming=False,  # Explicit non-streaming for stable telemetry
                 )
             else:
                 raise ValueError(f"Unsupported LLM provider: {self.settings.llm_provider}")
@@ -133,7 +146,8 @@ class LLMClient:
             # Log message count for debugging
             logger.debug(f"Sending {len(messages)} messages to {self.settings.llm_provider}")
             
-            # Call the LLM
+            # Call the LLM using async invoke
+            # OpenLit will auto-instrument via OpenAI integration (stable telemetry path)
             response = await self.client.ainvoke(messages)
             
             # Extract response content
@@ -170,12 +184,12 @@ class LLMClient:
         return False
     
     def get_provider_info(self) -> Dict[str, str]:
-        """Get current provider and model information."""
+        """Get current provider and model information for monitoring and debugging."""
         if self.settings.llm_provider == "ollama":
             return {
-                "provider": "ollama",
+                "provider": "ollama (via OpenAI API)",
                 "model": self.settings.ollama_model,
-                "base_url": self.settings.ollama_base_url
+                "base_url": f"{self.settings.ollama_base_url}/v1"
             }
         else:
             return {
