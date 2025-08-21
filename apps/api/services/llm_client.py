@@ -47,6 +47,7 @@ class LLMClient:
                 return ChatOllama(
                     model=self.settings.ollama_model,
                     base_url=self.settings.ollama_base_url,
+                    streaming=False,
                     temperature=0.7,
                 )
             elif self.settings.llm_provider == "azure":
@@ -57,6 +58,7 @@ class LLMClient:
                     api_key=self.settings.azure_openai_api_key,
                     api_version=self.settings.azure_openai_api_version,
                     temperature=0.7,
+                    streaming=False,
                 )
             else:
                 raise ValueError(f"Unsupported LLM provider: {self.settings.llm_provider}")

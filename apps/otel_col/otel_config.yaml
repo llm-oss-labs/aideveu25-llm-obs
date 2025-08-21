@@ -9,7 +9,15 @@ receivers:
         endpoint: 0.0.0.0:4317
 
 processors:
-  batch: {}
+  batch:
+    timeout: 1s # export batches every 1 second instead of default 5s
+    send_batch_size: 100 # smaller batches sent more frequently
+  memory_limiter:
+    # 80% of maximum memory up to 2G
+    limit_mib: 1500
+    # 25% of limit up to 2G
+    spike_limit_mib: 512
+    check_interval: 1s
 
 exporters:
   # Export traces to Tempo
@@ -18,8 +26,8 @@ exporters:
     tls:
       insecure: true
   
-  azuremonitor:
-    connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
+  # azuremonitor:
+  #   connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
 
   
   # Adding debug exporter to see logs in the collector output
