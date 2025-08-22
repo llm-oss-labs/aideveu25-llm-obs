@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
-    title="LLM Workshop API",
+    title="LLM Observability Workshop API",
     description="""
     A minimal FastAPI application for workshop demonstrations of LLM integration.
     
@@ -113,7 +113,6 @@ app = FastAPI(
     ## Features
     - Session-based conversation history
     - Environment-based provider switching
-    - Minimal LangChain integration
     - Ready for observability tooling
     
     ## Configuration

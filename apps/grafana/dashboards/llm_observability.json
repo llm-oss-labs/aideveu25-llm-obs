@@ -15,7 +15,7 @@
         }
     ],
     "uid": "llm-observability",
-    "title": "LLM Observability (GenAI & LangChain)",
+    "title": "LLM Observability",
     "tags": [
         "llm",
         "genai",
