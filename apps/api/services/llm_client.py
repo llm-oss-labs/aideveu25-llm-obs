@@ -2,8 +2,8 @@
 LLM client service for handling both Ollama and Azure OpenAI providers.
 Provides a unified interface for LLM interactions with provider-specific implementations.
 
-Both providers use OpenAI-compatible APIs for consistent instrumentation:
-- Ollama: Uses OpenAI-compatible /v1 endpoint
+Uses OpenAI-compatible APIs for both providers to ensure stable OpenLit instrumentation:
+- Ollama: Routes through Ollama's OpenAI-compatible /v1 endpoint
 - Azure: Uses native Azure OpenAI client
 """
 import logging
@@ -46,13 +46,16 @@ class LLMClient:
         """
         Initialize the appropriate OpenAI client based on provider.
         
-        For Ollama: Connects to OpenAI-compatible endpoint (/v1)
-        For Azure: Connects to Azure OpenAI service
+        For Ollama: Uses OpenAI-compatible endpoint (/v1) to leverage stable OpenLit OpenAI instrumentation
+        For Azure: Uses native Azure OpenAI client with direct instrumentation
+        
+        Both providers use the OpenAI client directly to avoid LangChain's model name issues.
         """
         try:
             if self.settings.llm_provider == "ollama":
                 logger.info(f"Connecting to Ollama via OpenAI-compatible API: {self.settings.ollama_model} at {self.settings.ollama_base_url}")
-                # Connect to Ollama's OpenAI-compatible /v1 endpoint
+                # Route through Ollama's OpenAI-compatible /v1 endpoint
+                # This avoids OpenLit's native Ollama instrumentation bugs while maintaining full telemetry
                 return AsyncOpenAI(
                     base_url=f"{self.settings.ollama_base_url.rstrip('/')}/v1",
                     api_key="ollama",  # Dummy key required by OpenAI client
@@ -142,12 +145,13 @@ class LLMClient:
                 else self.settings.azure_openai_model
             )
             
-            # Call the LLM using OpenAI client
+            # Call the LLM using OpenAI client directly
+            # OpenLit will auto-instrument via OpenAI integration (stable telemetry path)
             response = await self.client.chat.completions.create(
                 model=model_name,
                 messages=messages,
                 temperature=0.7,
-                stream=False,  # Disable streaming for consistent telemetry
+                stream=False,  # Explicit non-streaming for stable telemetry
             )
             
             # Extract response content
