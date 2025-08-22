@@ -49,6 +49,19 @@
     ],
     "panels": [
         {
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            },
+            "id": 25,
+            "panels": [],
+            "title": "Overview",
+            "type": "row"
+        },
+        {
             "fieldConfig": {
                 "defaults": {},
                 "overrides": []
@@ -57,7 +70,7 @@
                 "h": 4,
                 "w": 12,
                 "x": 0,
-                "y": 0
+                "y": 1
             },
             "id": 21,
             "options": {
@@ -112,7 +125,7 @@
                 "h": 4,
                 "w": 12,
                 "x": 12,
-                "y": 0
+                "y": 1
             },
             "id": 22,
             "options": {
@@ -156,6 +169,19 @@
             "type": "stat"
         },
         {
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 5
+            },
+            "id": 26,
+            "panels": [],
+            "title": "Key Metrics",
+            "type": "row"
+        },
+        {
             "datasource": {
                 "type": "prometheus",
                 "uid": "${prometheus_datasource}"
@@ -190,7 +216,7 @@
                 "h": 4,
                 "w": 8,
                 "x": 0,
-                "y": 4
+                "y": 6
             },
             "id": 2,
             "options": {
@@ -262,7 +288,7 @@
                 "h": 4,
                 "w": 8,
                 "x": 8,
-                "y": 4
+                "y": 6
             },
             "id": 1,
             "options": {
@@ -334,7 +360,7 @@
                 "h": 4,
                 "w": 8,
                 "x": 16,
-                "y": 4
+                "y": 6
             },
             "id": 3,
             "options": {
@@ -374,6 +400,19 @@
             "type": "stat"
         },
         {
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 10
+            },
+            "id": 27,
+            "panels": [],
+            "title": "Performance Analysis",
+            "type": "row"
+        },
+        {
             "datasource": {
                 "type": "prometheus",
                 "uid": "${prometheus_datasource}"
@@ -409,10 +448,10 @@
                 "overrides": []
             },
             "gridPos": {
-                "h": 2,
-                "w": 8,
+                "h": 4,
+                "w": 6,
                 "x": 0,
-                "y": 8
+                "y": 11
             },
             "id": 5,
             "options": {
@@ -496,10 +535,10 @@
                 "overrides": []
             },
             "gridPos": {
-                "h": 6,
-                "w": 16,
-                "x": 8,
-                "y": 8
+                "h": 4,
+                "w": 6,
+                "x": 6,
+                "y": 11
             },
             "id": 4,
             "options": {
@@ -615,10 +654,10 @@
                 "overrides": []
             },
             "gridPos": {
-                "h": 8,
-                "w": 8,
-                "x": 0,
-                "y": 14
+                "h": 4,
+                "w": 12,
+                "x": 12,
+                "y": 11
             },
             "id": 17,
             "options": {
@@ -687,9 +726,9 @@
             },
             "gridPos": {
                 "h": 4,
-                "w": 8,
-                "x": 8,
-                "y": 14
+                "w": 12,
+                "x": 12,
+                "y": 15
             },
             "id": 16,
             "options": {
@@ -759,9 +798,9 @@
             },
             "gridPos": {
                 "h": 4,
-                "w": 8,
-                "x": 16,
-                "y": 14
+                "w": 6,
+                "x": 0,
+                "y": 15
             },
             "id": 13,
             "options": {
@@ -879,9 +918,9 @@
             },
             "gridPos": {
                 "h": 4,
-                "w": 16,
-                "x": 8,
-                "y": 18
+                "w": 6,
+                "x": 6,
+                "y": 15
             },
             "id": 6,
             "options": {
@@ -942,11 +981,97 @@
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 22
+                "y": 19
+            },
+            "id": 28,
+            "panels": [],
+            "title": "Model Usage",
+            "type": "row"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${prometheus_datasource}"
+            },
+            "description": "This panel displays the different AI models currently being used in the system based on what users are requesting. This shows the logical model usage patterns without the confusion of internal API version identifiers.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        }
+                    },
+                    "mappings": [],
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 24,
+                "x": 0,
+                "y": 20
+            },
+            "id": 24,
+            "options": {
+                "displayLabels": [
+                    "name",
+                    "value"
+                ],
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "right",
+                    "showLegend": true,
+                    "values": [
+                        "value"
+                    ]
+                },
+                "pieType": "pie",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "pluginVersion": "12.1.0-91038.patch3-91166",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "${prometheus_datasource}"
+                    },
+                    "expr": "sum by (gen_ai_request_model) (gen_ai_requests_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
+                    "hide": false,
+                    "legendFormat": "{{gen_ai_request_model}}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Models in Use",
+            "type": "piechart"
+        },
+        {
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 24
             },
             "id": 10,
             "panels": [],
-            "title": "GenAI Requests",
+            "title": "Detailed Traces",
             "type": "row"
         },
         {
@@ -982,10 +1107,10 @@
                 "overrides": []
             },
             "gridPos": {
-                "h": 12,
+                "h": 10,
                 "w": 24,
                 "x": 0,
-                "y": 23
+                "y": 25
             },
             "id": 8,
             "options": {
