@@ -237,7 +237,6 @@ user_message = PIIMasker.get_instance().mask(request.user_message)
 **Masking Strategies:**
 - Partial masking: `333-32-4555` → `333-32-****`
 - Token replacement: `user@domain.com` → `{{EMAIL}}`
-- Context preservation: "US" in "US SSN" is preserved
 
 </details>
 
