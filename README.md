@@ -8,6 +8,17 @@ In this 1-hour workshop, you'll learn how to achieve robust observability for La
 
 Join us to gain practical skills in ethical AI monitoring and contribute to the future of responsible AI observability!
 
+## 🎓 Workshop Labs
+This repository includes a comprehensive hands-on workshop series:
+
+**📖 [Complete Workshop Guide](labs/README.md)**
+
+### Lab Series:
+1. **[Lab 1: Baseline Setup](labs/LAB_01_BASELINE.md)** (30 min) - Set up LLM application without observability
+2. **[Lab 2: Basic Observability](labs/LAB_02_BASIC_OBSERVABILITY.md)** (45 min) - Add OpenLIT & OpenTelemetry  
+3. **[Lab 3: Full Observability Stack](labs/LAB_03_FULL_OBSERVABILITY.md)** (45 min) - Complete with Grafana, Prometheus, Tempo
+4. **[Lab 4: Privacy-Conscious Observability](labs/LAB_04_PRIVACY_OBSERVABILITY.md)** (30 min) - Implement PII masking
+
 ## ✨ What You'll Use
 
 This project provides a complete environment to explore privacy-conscious LLM observability:

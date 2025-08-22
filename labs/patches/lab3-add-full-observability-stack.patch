@@ -1,0 +1,1477 @@
+diff --git a/apps/grafana/dashboards/llm_observability.json b/apps/grafana/dashboards/llm_observability.json
+new file mode 100644
+index 0000000..2dfa979
+--- /dev/null
++++ b/apps/grafana/dashboards/llm_observability.json
+@@ -0,0 +1,1224 @@
++{
++    "annotations": {
++        "list": [
++            {
++                "builtIn": 1,
++                "datasource": {
++                    "type": "grafana",
++                    "uid": "-- Grafana --"
++                },
++                "enable": true,
++                "hide": true,
++                "iconColor": "rgba(0, 211, 255, 1)",
++                "name": "Annotations & Alerts",
++                "type": "dashboard"
++            }
++        ]
++    },
++    "editable": true,
++    "fiscalYearStartMonth": 0,
++    "graphTooltip": 1,
++    "id": 1,
++    "links": [
++        {
++            "asDropdown": false,
++            "icon": "bolt",
++            "includeVars": false,
++            "keepTime": false,
++            "tags": [],
++            "targetBlank": true,
++            "title": "OpenLIT Github",
++            "tooltip": "Github",
++            "type": "link",
++            "url": "https://github.com/openlit/openlit"
++        },
++        {
++            "asDropdown": false,
++            "icon": "doc",
++            "includeVars": false,
++            "keepTime": false,
++            "tags": [
++                "AI"
++            ],
++            "targetBlank": true,
++            "title": "OpenLIT Docs",
++            "tooltip": "Documentation",
++            "type": "link",
++            "url": "https://docs.openlit.io/"
++        }
++    ],
++    "panels": [
++        {
++            "fieldConfig": {
++                "defaults": {},
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 6,
++                "w": 10,
++                "x": 0,
++                "y": 0
++            },
++            "id": 21,
++            "options": {
++                "code": {
++                    "language": "plaintext",
++                    "showLineNumbers": false,
++                    "showMiniMap": false
++                },
++                "content": "---\n# GenAI Observability\n\nThis dashboard displays the usage stats of LLMs, tracking OpenTelemetry Traces and Metrics sent using [OpenLIT](https://github.com/openlit/openlit).\n\n---",
++                "mode": "markdown"
++            },
++            "pluginVersion": "12.1.1",
++            "title": "",
++            "transparent": true,
++            "type": "text"
++        },
++        {
++            "datasource": {
++                "type": "prometheus",
++                "uid": "${prometheus_datasource}"
++            },
++            "description": "This panel displays the LLM Request Rate",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "fixedColor": "blue",
++                        "mode": "palette-classic-by-name"
++                    },
++                    "mappings": [],
++                    "thresholds": {
++                        "mode": "absolute",
++                        "steps": [
++                            {
++                                "color": "red",
++                                "value": 0
++                            },
++                            {
++                                "color": "#EAB839",
++                                "value": 10
++                            },
++                            {
++                                "color": "#6ED0E0",
++                                "value": 100
++                            }
++                        ]
++                    },
++                    "unit": "reqps"
++                },
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 3,
++                "w": 14,
++                "x": 10,
++                "y": 0
++            },
++            "id": 22,
++            "options": {
++                "colorMode": "background",
++                "graphMode": "area",
++                "justifyMode": "auto",
++                "orientation": "auto",
++                "percentChangeColorMode": "standard",
++                "reduceOptions": {
++                    "calcs": [
++                        "lastNotNull"
++                    ],
++                    "fields": "",
++                    "values": false
++                },
++                "showPercentChange": true,
++                "textMode": "value_and_name",
++                "wideLayout": true
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "disableTextWrap": false,
++                    "editorMode": "code",
++                    "expr": "sum(rate(gen_ai_requests_total{telemetry_sdk_name=\"openlit\"}[$__rate_interval]))",
++                    "fullMetaSearch": false,
++                    "includeNullMetadata": true,
++                    "instant": false,
++                    "legendFormat": "LLM Request Rate",
++                    "range": true,
++                    "refId": "A",
++                    "useBackend": false
++                }
++            ],
++            "title": "",
++            "transparent": true,
++            "type": "stat"
++        },
++        {
++            "datasource": {
++                "type": "prometheus",
++                "uid": "${prometheus_datasource}"
++            },
++            "description": "This panel displays the cost incurred from using GenAI models. Note: OpenLIT applies estimated costs to all requests (including free local Ollama models) for tracking purposes. When using actual paid APIs like Azure OpenAI, these costs will reflect real charges.",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "fixedColor": "blue",
++                        "mode": "shades"
++                    },
++                    "decimals": 6,
++                    "mappings": [],
++                    "thresholds": {
++                        "mode": "absolute",
++                        "steps": [
++                            {
++                                "color": "green",
++                                "value": 0
++                            },
++                            {
++                                "color": "red",
++                                "value": 80
++                            }
++                        ]
++                    },
++                    "unit": "currencyUSD"
++                },
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 4,
++                "w": 14,
++                "x": 10,
++                "y": 3
++            },
++            "id": 2,
++            "options": {
++                "colorMode": "background",
++                "graphMode": "area",
++                "justifyMode": "auto",
++                "orientation": "auto",
++                "percentChangeColorMode": "standard",
++                "reduceOptions": {
++                    "calcs": [
++                        "lastNotNull"
++                    ],
++                    "fields": "",
++                    "values": false
++                },
++                "showPercentChange": true,
++                "textMode": "auto",
++                "wideLayout": true
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "expr": "sum(gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", deployment_environment=~\"$environment\", service_name=~\"$application\"}) / 100000 OR on() vector(0)",
++                    "hide": false,
++                    "legendFormat": "Total Usage Cost",
++                    "range": true,
++                    "refId": "A"
++                }
++            ],
++            "title": "",
++            "transparent": true,
++            "type": "stat"
++        },
++        {
++            "datasource": {
++                "type": "prometheus",
++                "uid": "${prometheus_datasource}"
++            },
++            "description": "This panel displays the total number of successful requests made to the GenAI system. A successful request is one that is completed without errors, indicating seamless operation and effective utilization of the GenAI service. Tracking this helps in understanding the reliability and performance of the GenAI system.",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "mode": "palette-classic-by-name"
++                    },
++                    "mappings": [],
++                    "min": 0,
++                    "thresholds": {
++                        "mode": "absolute",
++                        "steps": [
++                            {
++                                "color": "green",
++                                "value": 0
++                            },
++                            {
++                                "color": "red",
++                                "value": 80
++                            }
++                        ]
++                    },
++                    "unit": "none"
++                },
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 5,
++                "w": 6,
++                "x": 0,
++                "y": 6
++            },
++            "id": 1,
++            "options": {
++                "colorMode": "background",
++                "graphMode": "area",
++                "justifyMode": "auto",
++                "orientation": "auto",
++                "percentChangeColorMode": "standard",
++                "reduceOptions": {
++                    "calcs": [
++                        "lastNotNull"
++                    ],
++                    "fields": "",
++                    "values": false
++                },
++                "showPercentChange": true,
++                "textMode": "auto",
++                "wideLayout": true
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "expr": "sum by() (gen_ai_requests_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
++                    "hide": false,
++                    "legendFormat": "Total Successful GenAI Requests",
++                    "range": true,
++                    "refId": "A"
++                }
++            ],
++            "title": "",
++            "transparent": true,
++            "type": "stat"
++        },
++        {
++            "datasource": {
++                "type": "prometheus",
++                "uid": "${prometheus_datasource}"
++            },
++            "description": "This panel displays the different AI models currently being used in the system based on what users are requesting. This shows the logical model usage patterns without the confusion of internal API version identifiers.",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "mode": "palette-classic"
++                    },
++                    "custom": {
++                        "hideFrom": {
++                            "legend": false,
++                            "tooltip": false,
++                            "viz": false
++                        }
++                    },
++                    "mappings": [],
++                    "unit": "short"
++                },
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 5,
++                "w": 4,
++                "x": 6,
++                "y": 6
++            },
++            "id": 24,
++            "options": {
++                "displayLabels": [
++                    "name",
++                    "value"
++                ],
++                "legend": {
++                    "displayMode": "table",
++                    "placement": "right",
++                    "showLegend": true,
++                    "values": [
++                        "value"
++                    ]
++                },
++                "pieType": "pie",
++                "reduceOptions": {
++                    "calcs": [
++                        "lastNotNull"
++                    ],
++                    "fields": "",
++                    "values": false
++                },
++                "tooltip": {
++                    "hideZeros": false,
++                    "mode": "single",
++                    "sort": "none"
++                }
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "expr": "sum by (gen_ai_request_model) (gen_ai_requests_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
++                    "hide": false,
++                    "legendFormat": "{{gen_ai_request_model}}",
++                    "range": true,
++                    "refId": "A"
++                }
++            ],
++            "title": "Models in Use",
++            "type": "piechart"
++        },
++        {
++            "datasource": {
++                "type": "prometheus",
++                "uid": "${prometheus_datasource}"
++            },
++            "description": "This panel displays the total number of tokens consumed by GenAI requests, providing a direct measure of usage. Monitoring this helps in assessing the demand on GenAI services and guiding resource allocation or optimization strategies.",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "fixedColor": "purple",
++                        "mode": "shades"
++                    },
++                    "mappings": [],
++                    "thresholds": {
++                        "mode": "absolute",
++                        "steps": [
++                            {
++                                "color": "green",
++                                "value": 0
++                            },
++                            {
++                                "color": "red",
++                                "value": 80
++                            }
++                        ]
++                    },
++                    "unit": "none"
++                },
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 4,
++                "w": 8,
++                "x": 10,
++                "y": 7
++            },
++            "id": 3,
++            "options": {
++                "colorMode": "background",
++                "graphMode": "area",
++                "justifyMode": "auto",
++                "orientation": "auto",
++                "percentChangeColorMode": "standard",
++                "reduceOptions": {
++                    "calcs": [
++                        "lastNotNull"
++                    ],
++                    "fields": "",
++                    "values": false
++                },
++                "showPercentChange": true,
++                "textMode": "auto",
++                "wideLayout": true
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "editorMode": "code",
++                    "expr": "sum(gen_ai_client_token_usage_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
++                    "hide": false,
++                    "legendFormat": "Total Usage Tokens",
++                    "range": true,
++                    "refId": "A"
++                }
++            ],
++            "title": "",
++            "transparent": true,
++            "type": "stat"
++        },
++        {
++            "datasource": {
++                "type": "prometheus",
++                "uid": "${prometheus_datasource}"
++            },
++            "description": "This panel displays the average cost per use of the GenAI models and related services. It provides insights into the cost-effectiveness of interactions with GenAI, helping to identify trends in expense per operation. Monitoring this assists in optimizing budget allocation and improving cost efficiency in GenAI utilization.",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "fixedColor": "blue",
++                        "mode": "shades"
++                    },
++                    "decimals": 6,
++                    "mappings": [],
++                    "thresholds": {
++                        "mode": "absolute",
++                        "steps": [
++                            {
++                                "color": "green",
++                                "value": 0
++                            },
++                            {
++                                "color": "#EAB839",
++                                "value": 0.5
++                            },
++                            {
++                                "color": "red",
++                                "value": 1
++                            }
++                        ]
++                    },
++                    "unit": "currencyUSD"
++                },
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 4,
++                "w": 6,
++                "x": 18,
++                "y": 7
++            },
++            "id": 5,
++            "options": {
++                "colorMode": "background",
++                "graphMode": "none",
++                "justifyMode": "auto",
++                "orientation": "auto",
++                "percentChangeColorMode": "standard",
++                "reduceOptions": {
++                    "calcs": [
++                        "lastNotNull"
++                    ],
++                    "fields": "",
++                    "values": false
++                },
++                "showPercentChange": true,
++                "textMode": "auto",
++                "wideLayout": true
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "expr": "avg by() (gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"}) / 100000 OR on() vector(0)",
++                    "hide": false,
++                    "legendFormat": "Avg Usage Cost",
++                    "range": true,
++                    "refId": "A"
++                }
++            ],
++            "title": "",
++            "transparent": true,
++            "type": "stat"
++        },
++        {
++            "collapsed": false,
++            "gridPos": {
++                "h": 1,
++                "w": 24,
++                "x": 0,
++                "y": 11
++            },
++            "id": 27,
++            "panels": [],
++            "title": "Performance Analysis",
++            "type": "row"
++        },
++        {
++            "datasource": {
++                "type": "prometheus",
++                "uid": "${prometheus_datasource}"
++            },
++            "description": "This panel displays the time to first token (TTFT) - a critical latency metric showing how quickly the LLM starts responding. Lower values indicate better perceived performance and user experience.",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "mode": "palette-classic"
++                    },
++                    "decimals": 3,
++                    "mappings": [],
++                    "thresholds": {
++                        "mode": "absolute",
++                        "steps": [
++                            {
++                                "color": "green",
++                                "value": 0
++                            },
++                            {
++                                "color": "yellow",
++                                "value": 0.5
++                            },
++                            {
++                                "color": "red",
++                                "value": 2
++                            }
++                        ]
++                    },
++                    "unit": "s"
++                },
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 5,
++                "w": 12,
++                "x": 0,
++                "y": 12
++            },
++            "id": 16,
++            "options": {
++                "colorMode": "background",
++                "graphMode": "area",
++                "justifyMode": "auto",
++                "orientation": "auto",
++                "percentChangeColorMode": "standard",
++                "reduceOptions": {
++                    "calcs": [
++                        "lastNotNull"
++                    ],
++                    "fields": "",
++                    "values": false
++                },
++                "showPercentChange": false,
++                "textMode": "auto",
++                "wideLayout": true
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "expr": "gen_ai_server_time_to_first_token_seconds_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"} / gen_ai_server_time_to_first_token_seconds_count{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"}",
++                    "hide": false,
++                    "legendFormat": "Avg Time to First Token",
++                    "range": true,
++                    "refId": "A"
++                }
++            ],
++            "title": "Time to First Token",
++            "type": "stat"
++        },
++        {
++            "datasource": {
++                "type": "prometheus",
++                "uid": "${prometheus_datasource}"
++            },
++            "description": "This panel displays the token generation throughput - how many tokens per second the LLM is producing. Higher values indicate better performance and efficiency in token generation.",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "mode": "palette-classic"
++                    },
++                    "decimals": 1,
++                    "mappings": [],
++                    "thresholds": {
++                        "mode": "absolute",
++                        "steps": [
++                            {
++                                "color": "red",
++                                "value": 0
++                            },
++                            {
++                                "color": "yellow",
++                                "value": 10
++                            },
++                            {
++                                "color": "green",
++                                "value": 50
++                            }
++                        ]
++                    },
++                    "unit": "tokens/sec"
++                },
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 5,
++                "w": 12,
++                "x": 12,
++                "y": 12
++            },
++            "id": 13,
++            "options": {
++                "colorMode": "background",
++                "graphMode": "area",
++                "justifyMode": "auto",
++                "orientation": "auto",
++                "percentChangeColorMode": "standard",
++                "reduceOptions": {
++                    "calcs": [
++                        "lastNotNull"
++                    ],
++                    "fields": "",
++                    "values": false
++                },
++                "showPercentChange": false,
++                "textMode": "auto",
++                "wideLayout": true
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "expr": "gen_ai_usage_output_tokens_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"} / (gen_ai_client_operation_duration_seconds_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"} / gen_ai_client_operation_duration_seconds_count{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
++                    "hide": false,
++                    "legendFormat": "Tokens/Second",
++                    "range": true,
++                    "refId": "A"
++                }
++            ],
++            "title": "Token Generation Rate",
++            "type": "stat"
++        },
++        {
++            "datasource": {
++                "type": "prometheus",
++                "uid": "${prometheus_datasource}"
++            },
++            "description": "This panel displays the request volume over time, showing how LLM usage patterns change throughout the day. This helps identify peak usage periods and track adoption trends.",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "mode": "palette-classic"
++                    },
++                    "custom": {
++                        "axisBorderShow": false,
++                        "axisCenteredZero": false,
++                        "axisColorMode": "text",
++                        "axisLabel": "",
++                        "axisPlacement": "auto",
++                        "barAlignment": 0,
++                        "barWidthFactor": 0.6,
++                        "drawStyle": "line",
++                        "fillOpacity": 20,
++                        "gradientMode": "none",
++                        "hideFrom": {
++                            "legend": false,
++                            "tooltip": false,
++                            "viz": false
++                        },
++                        "insertNulls": false,
++                        "lineInterpolation": "smooth",
++                        "lineWidth": 2,
++                        "pointSize": 5,
++                        "scaleDistribution": {
++                            "type": "linear"
++                        },
++                        "showPoints": "auto",
++                        "spanNulls": false,
++                        "stacking": {
++                            "group": "A",
++                            "mode": "none"
++                        },
++                        "thresholdsStyle": {
++                            "mode": "off"
++                        }
++                    },
++                    "mappings": [],
++                    "thresholds": {
++                        "mode": "absolute",
++                        "steps": [
++                            {
++                                "color": "green",
++                                "value": 0
++                            },
++                            {
++                                "color": "red",
++                                "value": 80
++                            }
++                        ]
++                    },
++                    "unit": "reqps"
++                },
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 8,
++                "w": 24,
++                "x": 0,
++                "y": 17
++            },
++            "id": 17,
++            "options": {
++                "legend": {
++                    "calcs": [],
++                    "displayMode": "list",
++                    "placement": "bottom",
++                    "showLegend": true
++                },
++                "tooltip": {
++                    "hideZeros": false,
++                    "mode": "single",
++                    "sort": "none"
++                }
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "expr": "rate(gen_ai_requests_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"}[5m])",
++                    "hide": false,
++                    "legendFormat": "Request Rate",
++                    "range": true,
++                    "refId": "A"
++                }
++            ],
++            "title": "Request Volume Over Time",
++            "transparent": true,
++            "type": "timeseries"
++        },
++        {
++            "datasource": {
++                "type": "tempo",
++                "uid": "${tempo_datasource}"
++            },
++            "description": "This panel displays the distribution of request durations for GenAI services. It highlights how long requests take to complete, from the shortest to the longest durations, offering insights into system performance and efficiency. Understanding this distribution helps in identifying bottlenecks and optimizing response times.",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "fixedColor": "blue",
++                        "mode": "palette-classic"
++                    },
++                    "custom": {
++                        "fillOpacity": 81,
++                        "gradientMode": "opacity",
++                        "hideFrom": {
++                            "legend": false,
++                            "tooltip": false,
++                            "viz": false
++                        },
++                        "lineWidth": 3,
++                        "stacking": {
++                            "group": "A",
++                            "mode": "none"
++                        }
++                    },
++                    "mappings": [],
++                    "min": 0,
++                    "thresholds": {
++                        "mode": "absolute",
++                        "steps": [
++                            {
++                                "color": "green",
++                                "value": 0
++                            },
++                            {
++                                "color": "red",
++                                "value": 10
++                            }
++                        ]
++                    },
++                    "unit": "s"
++                },
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 8,
++                "w": 24,
++                "x": 0,
++                "y": 25
++            },
++            "id": 4,
++            "options": {
++                "legend": {
++                    "calcs": [],
++                    "displayMode": "list",
++                    "placement": "bottom",
++                    "showLegend": false
++                },
++                "tooltip": {
++                    "hideZeros": false,
++                    "mode": "single",
++                    "sort": "none"
++                }
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "tempo",
++                        "uid": "${tempo_datasource}"
++                    },
++                    "filters": [
++                        {
++                            "id": "status",
++                            "operator": "=",
++                            "scope": "intrinsic",
++                            "tag": "status",
++                            "value": "ok",
++                            "valueType": "keyword"
++                        },
++                        {
++                            "id": "f755ab99",
++                            "operator": "=",
++                            "scope": "span",
++                            "tag": "telemetry.sdk.name",
++                            "value": [
++                                "openlit"
++                            ],
++                            "valueType": "string"
++                        }
++                    ],
++                    "limit": 20,
++                    "metricsQueryType": "range",
++                    "query": "{status=ok && span.telemetry.sdk.name=\"openlit\" && span.service.name=~\"$application\" && span.deployment.environment=~\"$environment\"}",
++                    "queryType": "traceql",
++                    "refId": "A",
++                    "tableType": "traces"
++                }
++            ],
++            "title": "Request Duration Distribution",
++            "type": "histogram"
++        },
++        {
++            "datasource": {
++                "type": "prometheus",
++                "uid": "${prometheus_datasource}"
++            },
++            "description": "This panel displays a comparative graph showing the average number of tokens consumed for input and output against the average usage cost. It provides a visual representation of the relationship between the volume of data processed (in tokens) and the financial implications of using GenAI services. Analyzing this comparison helps in assessing cost-effectiveness and guiding strategic decisions for efficient resource utilization.",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "mode": "palette-classic"
++                    },
++                    "custom": {
++                        "axisBorderShow": false,
++                        "axisCenteredZero": false,
++                        "axisColorMode": "text",
++                        "axisLabel": "",
++                        "axisPlacement": "auto",
++                        "barAlignment": 1,
++                        "barWidthFactor": 0.6,
++                        "drawStyle": "line",
++                        "fillOpacity": 30,
++                        "gradientMode": "opacity",
++                        "hideFrom": {
++                            "legend": false,
++                            "tooltip": false,
++                            "viz": false
++                        },
++                        "insertNulls": false,
++                        "lineInterpolation": "smooth",
++                        "lineStyle": {
++                            "fill": "solid"
++                        },
++                        "lineWidth": 2,
++                        "pointSize": 5,
++                        "scaleDistribution": {
++                            "type": "linear"
++                        },
++                        "showPoints": "always",
++                        "spanNulls": true,
++                        "stacking": {
++                            "group": "A",
++                            "mode": "none"
++                        },
++                        "thresholdsStyle": {
++                            "mode": "off"
++                        }
++                    },
++                    "mappings": [],
++                    "thresholds": {
++                        "mode": "absolute",
++                        "steps": [
++                            {
++                                "color": "green",
++                                "value": 0
++                            },
++                            {
++                                "color": "red",
++                                "value": 80
++                            }
++                        ]
++                    },
++                    "unit": "none"
++                },
++                "overrides": [
++                    {
++                        "matcher": {
++                            "id": "byName",
++                            "options": "Usage Cost"
++                        },
++                        "properties": [
++                            {
++                                "id": "unit",
++                                "value": "currencyUSD"
++                            },
++                            {
++                                "id": "decimals",
++                                "value": 6
++                            }
++                        ]
++                    }
++                ]
++            },
++            "gridPos": {
++                "h": 10,
++                "w": 24,
++                "x": 0,
++                "y": 33
++            },
++            "id": 6,
++            "options": {
++                "legend": {
++                    "calcs": [],
++                    "displayMode": "list",
++                    "placement": "bottom",
++                    "showLegend": true
++                },
++                "tooltip": {
++                    "hideZeros": false,
++                    "mode": "single",
++                    "sort": "none"
++                }
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "expr": "avg(gen_ai_usage_input_tokens_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
++                    "hide": false,
++                    "legendFormat": "Input Tokens",
++                    "range": true,
++                    "refId": "A"
++                },
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "expr": "avg(gen_ai_usage_output_tokens_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
++                    "hide": false,
++                    "legendFormat": "Output Tokens",
++                    "range": true,
++                    "refId": "B"
++                },
++                {
++                    "datasource": {
++                        "type": "prometheus",
++                        "uid": "${prometheus_datasource}"
++                    },
++                    "expr": "avg(gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"}) / 100000 OR on() vector(0)",
++                    "hide": false,
++                    "legendFormat": "Usage Cost",
++                    "range": true,
++                    "refId": "C"
++                }
++            ],
++            "title": "Average Token Consumption vs. Average Usage Cost Comparison",
++            "type": "timeseries"
++        },
++        {
++            "collapsed": false,
++            "gridPos": {
++                "h": 1,
++                "w": 24,
++                "x": 0,
++                "y": 43
++            },
++            "id": 10,
++            "panels": [],
++            "title": "Detailed Traces",
++            "type": "row"
++        },
++        {
++            "datasource": {
++                "type": "tempo",
++                "uid": "${tempo_datasource}"
++            },
++            "description": "This panel displays a detailed table of GenAI request traces, providing comprehensive insights into each request's timing, source, type, and outcome. It allows for the in-depth analysis of individual requests, facilitating troubleshooting, performance monitoring, and understanding user interactions with GenAI services. Tracking this helps in identifying patterns, potential issues, and opportunities for optimization.",
++            "fieldConfig": {
++                "defaults": {
++                    "color": {
++                        "mode": "continuous-BlPu"
++                    },
++                    "custom": {
++                        "align": "auto",
++                        "cellOptions": {
++                            "type": "color-background"
++                        },
++                        "inspect": false
++                    },
++                    "mappings": [],
++                    "thresholds": {
++                        "mode": "absolute",
++                        "steps": [
++                            {
++                                "color": "green",
++                                "value": 0
++                            }
++                        ]
++                    },
++                    "unit": "s"
++                },
++                "overrides": []
++            },
++            "gridPos": {
++                "h": 10,
++                "w": 24,
++                "x": 0,
++                "y": 44
++            },
++            "id": 8,
++            "options": {
++                "cellHeight": "sm",
++                "footer": {
++                    "countRows": false,
++                    "fields": "",
++                    "reducer": [
++                        "sum"
++                    ],
++                    "show": false
++                },
++                "showHeader": true
++            },
++            "pluginVersion": "12.1.1",
++            "targets": [
++                {
++                    "datasource": {
++                        "type": "tempo",
++                        "uid": "${tempo_datasource}"
++                    },
++                    "filters": [
++                        {
++                            "id": "status",
++                            "operator": "=",
++                            "scope": "intrinsic",
++                            "tag": "status",
++                            "value": "ok",
++                            "valueType": "keyword"
++                        }
++                    ],
++                    "limit": 20,
++                    "metricsQueryType": "range",
++                    "query": "{status=ok && span.service.name=~\"$application\" && span.deployment.environment=~\"$environment\"} | select(span.gen_ai.prompt, span.gen_ai.completion, span.gen_ai.usage.cost)",
++                    "queryType": "traceql",
++                    "refId": "A",
++                    "tableType": "traces"
++                }
++            ],
++            "title": "",
++            "transparent": true,
++            "type": "table"
++        }
++    ],
++    "preload": false,
++    "refresh": "5s",
++    "schemaVersion": 41,
++    "tags": [],
++    "templating": {
++        "list": [
++            {
++                "current": {
++                    "text": "Tempo",
++                    "value": "tempo"
++                },
++                "includeAll": false,
++                "label": "Tempo data source",
++                "name": "tempo_datasource",
++                "options": [],
++                "query": "tempo",
++                "refresh": 1,
++                "regex": "",
++                "type": "datasource"
++            },
++            {
++                "current": {
++                    "text": "Prometheus",
++                    "value": "prometheus"
++                },
++                "includeAll": false,
++                "label": "Prometheus data source",
++                "name": "prometheus_datasource",
++                "options": [],
++                "query": "prometheus",
++                "refresh": 1,
++                "regex": "(?!grafanacloud-usage|grafanacloud-ml-metrics).+",
++                "type": "datasource"
++            },
++            {
++                "allValue": ".*",
++                "current": {
++                    "text": "All",
++                    "value": "$__all"
++                },
++                "datasource": {
++                    "type": "prometheus",
++                    "uid": "${prometheus_datasource}"
++                },
++                "definition": "label_values(gen_ai_requests_total, service_name)",
++                "includeAll": true,
++                "label": "Application",
++                "multi": true,
++                "name": "application",
++                "options": [],
++                "query": {
++                    "qryType": 1,
++                    "query": "label_values(gen_ai_requests_total, service_name)",
++                    "refId": "PrometheusVariableQueryEditor-VariableQuery"
++                },
++                "refresh": 2,
++                "regex": "",
++                "type": "query"
++            },
++            {
++                "allValue": ".*",
++                "current": {
++                    "text": "All",
++                    "value": "$__all"
++                },
++                "datasource": {
++                    "type": "prometheus",
++                    "uid": "${prometheus_datasource}"
++                },
++                "definition": "label_values(gen_ai_requests_total, deployment_environment)",
++                "includeAll": true,
++                "label": "Environment",
++                "multi": true,
++                "name": "environment",
++                "options": [],
++                "query": {
++                    "qryType": 1,
++                    "query": "label_values(gen_ai_requests_total, deployment_environment)",
++                    "refId": "PrometheusVariableQueryEditor-VariableQuery"
++                },
++                "refresh": 2,
++                "regex": "",
++                "sort": 1,
++                "type": "query"
++            }
++        ]
++    },
++    "time": {
++        "from": "now-15m",
++        "to": "now"
++    },
++    "timepicker": {},
++    "timezone": "browser",
++    "title": "GenAI Observability",
++    "uid": "9c41dda6-4dff-4423-adec-8f2bc0fc5b58",
++    "version": 1
++}
+\ No newline at end of file
+diff --git a/apps/grafana/grafana.ini b/apps/grafana/grafana.ini
+new file mode 100644
+index 0000000..558e7f0
+--- /dev/null
++++ b/apps/grafana/grafana.ini
+@@ -0,0 +1,16 @@
++[auth.anonymous]
++# Enable anonymous access
++enabled = true
++# Give anonymous users Admin role in the default org
++org_role = Admin
++
++[auth]
++# Optional: hide the login form since anonymous has admin
++disable_login_form = true
++
++[dashboards]
++# Make our LLM Observability dashboard the global default home for all users
++default_home_dashboard_path = /etc/grafana/dashboards/llm_observability.json
++
++[log]
++level = warning
+diff --git a/apps/grafana/provisioning/dashboards/dashboards.yaml b/apps/grafana/provisioning/dashboards/dashboards.yaml
+new file mode 100644
+index 0000000..dbe1fa1
+--- /dev/null
++++ b/apps/grafana/provisioning/dashboards/dashboards.yaml
+@@ -0,0 +1,13 @@
++apiVersion: 1
++providers:
++  - name: "LLM Dashboards"
++    orgId: 1
++    folder: "LLM Observability"
++    type: file
++    disableDeletion: false
++    editable: true
++    updateIntervalSeconds: 10
++    allowUiUpdates: true
++    options:
++      path: /etc/grafana/dashboards
++      foldersFromFilesStructure: true
+diff --git a/apps/grafana/provisioning/datasources/datasources.yaml b/apps/grafana/provisioning/datasources/datasources.yaml
+new file mode 100644
+index 0000000..e0ca5da
+--- /dev/null
++++ b/apps/grafana/provisioning/datasources/datasources.yaml
+@@ -0,0 +1,18 @@
++apiVersion: 1
++
++datasources:
++  - name: Tempo
++    type: tempo
++    access: proxy
++    url: http://tempo:3200
++    uid: tempo
++    editable: true
++    isDefault: false
++    
++  - name: Prometheus
++    type: prometheus
++    access: proxy
++    url: http://prometheus:9090
++    uid: prometheus
++    editable: true
++    isDefault: true
+diff --git a/apps/grafana/provisioning/org/org.yaml b/apps/grafana/provisioning/org/org.yaml
+new file mode 100644
+index 0000000..ef2e1e5
+--- /dev/null
++++ b/apps/grafana/provisioning/org/org.yaml
+@@ -0,0 +1,7 @@
++apiVersion: 1
++
++# Set the default home dashboard for the Grafana org
++preferences:
++  homeDashboardUID: llm-observability
++  theme: light
++  timezone: browser
+diff --git a/apps/grafana_tempo/tempo.yaml b/apps/grafana_tempo/tempo.yaml
+new file mode 100644
+index 0000000..7aab7d2
+--- /dev/null
++++ b/apps/grafana_tempo/tempo.yaml
+@@ -0,0 +1,52 @@
++server:
++  http_listen_port: 3200
++  grpc_listen_port: 9095
++
++distributor:
++  receivers:
++    otlp:
++      protocols:
++        grpc:
++          endpoint: 0.0.0.0:4317
++        http:
++          endpoint: 0.0.0.0:4318
++
++ingester:
++  max_block_duration: 5m               # cut the headblock when this much time passes
++  trace_idle_period: 10s               # the length of time after a trace has not received spans to consider it complete and flush it
++  max_block_bytes: 1_000_000           # maximum size of a block before cutting it
++
++compactor:
++  compaction:
++    block_retention: 1h                # overall Tempo trace retention
++
++metrics_generator:
++  registry:
++    external_labels:
++      source: tempo
++      cluster: docker-compose
++  storage:
++    path: /tmp/tempo/generator/wal
++    remote_write:
++      - url: http://prometheus:9090/api/v1/write
++        send_exemplars: true
++  traces_storage:
++    path: /tmp/tempo/generator/traces
++
++storage:
++  trace:
++    backend: local                     # backend configuration to use
++    wal:
++      path: /tmp/tempo/wal             # where to store the the wal locally
++    local:
++      path: /tmp/tempo/blocks
++
++query_frontend:
++  search:
++    duration_slo: 5s
++    throughput_bytes_slo: 1.073741824e+09
++  trace_by_id:
++    duration_slo: 5s
++
++usage_report:
++  reporting_enabled: false
+diff --git a/apps/otel_col/otel_config.yaml b/apps/otel_col/otel_config.yaml
+index 218594a..ca3c5c2 100644
+--- a/apps/otel_col/otel_config.yaml
++++ b/apps/otel_col/otel_config.yaml
+@@ -20,20 +20,34 @@ processors:
+     check_interval: 1s
+ 
+ exporters:
++  # Export traces to Tempo
++  otlp/tempo:
++    endpoint: tempo:4317
++    tls:
++      insecure: true
++  
+   # azuremonitor:
+   #   connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
+ 
++  
+   # Adding debug exporter to see logs in the collector output
+   debug:
+     verbosity: detailed
+ 
++  # Expose metrics in Prometheus format for scraping
++  prometheus:
++    endpoint: 0.0.0.0:9464
++    resource_to_telemetry_conversion:
++      enabled: true
++
++
+ service:
+   pipelines:
+     traces:
+       receivers: [otlp]
+       processors: [batch]
+-      exporters: [debug]
++      exporters: [otlp/tempo]
+     metrics:
+       receivers: [otlp]
+       processors: [batch]
+-      exporters: [debug]
++      exporters: [prometheus]
+diff --git a/apps/prometheus/prometheus.yml b/apps/prometheus/prometheus.yml
+new file mode 100644
+index 0000000..d0acc8a
+--- /dev/null
++++ b/apps/prometheus/prometheus.yml
+@@ -0,0 +1,10 @@
++global:
++  scrape_interval: 2s
++  evaluation_interval: 2s
++
++scrape_configs:
++  # Scrape the OpenTelemetry Collector's Prometheus exporter endpoint
++  - job_name: 'otel-collector'
++    scrape_interval: 2s
++    static_configs:
++      - targets: ['otelcol:9464']
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 0a8a3fa..79bc444 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -32,3 +32,48 @@ services:
+     ports:
+       - "4317:4317" # OTLP gRPC receiver
+       - "4318:4318" # OTLP http receiver
++      # - "9464:9464"   # Optional: expose Prometheus scrape endpoint to host
++    depends_on:
++      - tempo
++
++  grafana:
++    image: grafana/grafana:12.1.1
++    container_name: grafana
++    restart: unless-stopped
++    ports:
++      - "3000:3000" # Grafana UI
++    volumes:
++      - ./apps/grafana/provisioning:/etc/grafana/provisioning
++      - ./apps/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
++      - ./apps/grafana/dashboards:/etc/grafana/dashboards:ro
++      # - grafana-data:/var/lib/grafana
++    depends_on:
++      - tempo
++      - prometheus
++
++  tempo:
++    image: grafana/tempo:main-a909571
++    container_name: tempo
++    restart: unless-stopped
++    ports:
++      - "3200:3200" # Tempo HTTP API
++      - "9095:9095" # Tempo gRPC API
++    volumes:
++      - ./apps/grafana_tempo/tempo.yaml:/etc/tempo.yaml:ro
++      #- tempo-data:/tmp/tempo
++    command: [ "-config.file=/etc/tempo.yaml" ]
++
++  prometheus:
++    image: prom/prometheus:v3.5.0
++    container_name: prometheus
++    restart: unless-stopped
++    depends_on:
++      - otelcol
++    ports:
++      - "9090:9090" # Prometheus UI
++    volumes:
++      - ./apps/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
++
++volumes:
++  tempo-data:
++  grafana-data:
