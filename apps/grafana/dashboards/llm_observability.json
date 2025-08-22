@@ -1033,7 +1033,7 @@
                 "type": "datasource"
             },
             {
-                "allValue": "default",
+                "allValue": ".*",
                 "current": {
                     "text": "All",
                     "value": "$__all"
@@ -1042,7 +1042,7 @@
                     "type": "prometheus",
                     "uid": "${prometheus_datasource}"
                 },
-                "definition": "label_values(service_name)",
+                "definition": "label_values(gen_ai_requests_total, service_name)",
                 "includeAll": true,
                 "label": "Application",
                 "multi": true,
@@ -1050,7 +1050,7 @@
                 "options": [],
                 "query": {
                     "qryType": 1,
-                    "query": "label_values(service_name)",
+                    "query": "label_values(gen_ai_requests_total, service_name)",
                     "refId": "PrometheusVariableQueryEditor-VariableQuery"
                 },
                 "refresh": 2,
@@ -1058,6 +1058,7 @@
                 "type": "query"
             },
             {
+                "allValue": ".*",
                 "current": {
                     "text": "All",
                     "value": "$__all"
@@ -1066,7 +1067,7 @@
                     "type": "prometheus",
                     "uid": "${prometheus_datasource}"
                 },
-                "definition": "label_values(deployment_environment)",
+                "definition": "label_values(gen_ai_requests_total, deployment_environment)",
                 "includeAll": true,
                 "label": "Environment",
                 "multi": true,
@@ -1074,7 +1075,7 @@
                 "options": [],
                 "query": {
                     "qryType": 1,
-                    "query": "label_values(deployment_environment)",
+                    "query": "label_values(gen_ai_requests_total, deployment_environment)",
                     "refId": "PrometheusVariableQueryEditor-VariableQuery"
                 },
                 "refresh": 2,
