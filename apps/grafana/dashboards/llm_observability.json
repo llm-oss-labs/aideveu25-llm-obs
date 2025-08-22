@@ -160,7 +160,7 @@
                 "type": "prometheus",
                 "uid": "${prometheus_datasource}"
             },
-            "description": "This panel displays the total cost incurred from using GenAI models. It reflects the financial impact of operational activities, offering insights into budgetary allocation and efficiency. Tracking this helps in effective cost management and financial planning for GenAI usage.",
+            "description": "This panel displays the cost incurred from using GenAI models. Note: OpenLIT applies estimated costs to all requests (including free local Ollama models) for tracking purposes. When using actual paid APIs like Azure OpenAI, these costs will reflect real charges.",
             "fieldConfig": {
                 "defaults": {
                     "color": {
@@ -181,7 +181,8 @@
                             }
                         ]
                     },
-                    "unit": "currencyUSD"
+                    "unit": "currencyUSD",
+                    "decimals": 6
                 },
                 "overrides": []
             },
@@ -216,7 +217,7 @@
                         "type": "prometheus",
                         "uid": "${prometheus_datasource}"
                     },
-                    "expr": "sum(gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", deployment_environment=~\"$environment\", service_name=~\"$application\"})",
+                    "expr": "sum(gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", deployment_environment=~\"$environment\", service_name=~\"$application\"}) / 100000 OR on() vector(0)",
                     "hide": false,
                     "legendFormat": "Total Usage Cost",
                     "range": true,
@@ -402,7 +403,8 @@
                             }
                         ]
                     },
-                    "unit": "currencyUSD"
+                    "unit": "currencyUSD",
+                    "decimals": 6
                 },
                 "overrides": []
             },
@@ -437,7 +439,7 @@
                         "type": "prometheus",
                         "uid": "${prometheus_datasource}"
                     },
-                    "expr": "avg by() (gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
+                    "expr": "avg by() (gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"}) / 100000 OR on() vector(0)",
                     "hide": false,
                     "legendFormat": "Avg Usage Cost",
                     "range": true,
@@ -838,6 +840,10 @@
                             {
                                 "id": "unit",
                                 "value": "currencyUSD"
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 6
                             }
                         ]
                     }
@@ -892,7 +898,7 @@
                         "type": "prometheus",
                         "uid": "${prometheus_datasource}"
                     },
-                    "expr": "avg(gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
+                    "expr": "avg(gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"}) / 100000 OR on() vector(0)",
                     "hide": false,
                     "legendFormat": "Usage Cost",
                     "range": true,
