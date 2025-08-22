@@ -173,7 +173,7 @@ graph TD
     LLM --> OLLAMA[🦙 Ollama Local]
     LLM --> AZURE[☁️ Azure OpenAI]
     
-    API --> OPENLIT[📊 OpenLit]
+    API --> OPENLIT[📊 OpenLIT]
     OPENLIT --> OTEL[📡 OTel Collector]
     
     OTEL --> TEMPO[📦 Tempo]
@@ -212,7 +212,7 @@ apps/
 <details>
 <summary><strong>📊 Observability Stack</strong></summary>
 
-- **OpenLit** → LLM-specific observability with automatic instrumentation
+- **OpenLIT** → LLM-specific observability with automatic instrumentation
 - **OpenTelemetry Collector** → Routes traces to Tempo, metrics to Prometheus  
 - **Grafana Tempo** → Distributed tracing storage and querying
 - **Prometheus** → Time-series metrics storage

@@ -2,7 +2,7 @@
 LLM client service for handling both Ollama and Azure OpenAI providers.
 Provides a unified interface for LLM interactions with provider-specific implementations.
 
-Uses OpenAI-compatible APIs for both providers to ensure stable OpenLit instrumentation:
+Uses OpenAI-compatible APIs for both providers to ensure stable OpenLIT instrumentation:
 - Ollama: Routes through Ollama's OpenAI-compatible /v1 endpoint
 - Azure: Uses native Azure OpenAI client
 """
@@ -45,8 +45,8 @@ class LLMClient:
     def _initialize_client(self):
         """
         Initialize the appropriate OpenAI client based on provider.
-        
-        For Ollama: Uses OpenAI-compatible endpoint (/v1) to leverage stable OpenLit OpenAI instrumentation
+
+        For Ollama: Uses OpenAI-compatible endpoint (/v1) to leverage stable OpenLIT OpenAI instrumentation
         For Azure: Uses native Azure OpenAI client with direct instrumentation
         
         Both providers use the OpenAI client directly to avoid LangChain's model name issues.
@@ -55,7 +55,7 @@ class LLMClient:
             if self.settings.llm_provider == "ollama":
                 logger.info(f"Connecting to Ollama via OpenAI-compatible API: {self.settings.ollama_model} at {self.settings.ollama_base_url}")
                 # Route through Ollama's OpenAI-compatible /v1 endpoint
-                # This avoids OpenLit's native Ollama instrumentation bugs while maintaining full telemetry
+                # This avoids OpenLIT's native Ollama instrumentation bugs while maintaining full telemetry
                 return AsyncOpenAI(
                     base_url=f"{self.settings.ollama_base_url.rstrip('/')}/v1",
                     api_key="ollama",  # Dummy key required by OpenAI client
@@ -146,7 +146,7 @@ class LLMClient:
             )
             
             # Call the LLM using OpenAI client directly
-            # OpenLit will auto-instrument via OpenAI integration (stable telemetry path)
+            # OpenLIT will auto-instrument via OpenAI integration (stable telemetry path)
             response = await self.client.chat.completions.create(
                 model=model_name,
                 messages=messages,
