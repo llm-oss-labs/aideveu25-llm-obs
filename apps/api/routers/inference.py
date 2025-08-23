@@ -40,9 +40,9 @@ async def chat(request: ChatRequest, app_request: Request):
             status_code=503,
             detail="LLM service unavailable. Please check your configuration."
         )
-    
-    # Mask PII in user message before processing
+    # Mask PII in user message before processing    
     user_message = request.user_message
+
     try:
         pii_masking_enabled = True if settings is None else getattr(settings, "pii_masking_enabled", True)
         if pii_masking_enabled:

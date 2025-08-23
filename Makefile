@@ -11,7 +11,7 @@ help: ## List available commands and descriptions
 
 # Docker
 docker-up: ## Build (if needed) and start all services in the background
-	$(DC) up --build -d
+	$(DC) down && $(DC) up --build -d
 
 docker-build: ## Build all Docker images defined in docker-compose
 	$(DC) build

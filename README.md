@@ -10,17 +10,17 @@ Join us to gain practical skills in ethical AI monitoring and contribute to the 
 
 ## ✨ What You'll Use
 
-This project provides a complete environment to explore LLM observability:
+This project provides a complete environment to explore privacy-conscious LLM observability:
 
-- **LLM Backend**: Switch between `Ollama` (local) or `Azure OpenAI` (cloud).
-- **Chat Interface**: A session-based chat CLI with rolling history.
-- **Observability Stack**:
-  - **OpenTelemetry**: For generating and collecting telemetry data.
-  - **Prometheus**: For metrics and alerting.
-  - **Grafana Tempo**: For trace storage and retrieval.
-  - **Grafana**: For beautiful, pre-configured dashboards.
-- **Containerized Services**: The entire stack runs in Docker, managed with Docker Compose.
-- **Simplified Workflow**: A `Makefile` provides simple commands for all common actions.
+- **🤖 LLM Backend**: Switch between `Ollama` (local) or `Azure OpenAI` (cloud)
+- **💬 Chat Interface**: A session-based chat CLI with rolling history
+- **📈 Observability Stack**:
+  - **OpenLIT**: Specialized LLM observability with automatic instrumentation
+  - **Prometheus**: For metrics storage and alerting
+  - **Grafana Tempo**: For distributed trace storage and retrieval
+  - **Grafana**: Pre-configured dashboards for LLM-specific metrics
+- **🐳 Containerized Services**: The entire stack runs in Docker, managed with Docker Compose
+- **Simplified Workflow**: A `Makefile` provides simple commands for all common actions
 
 ---
 
@@ -89,9 +89,11 @@ make docker-up
 
 Once running, you can access the following services (Codespaces will prompt you to forward the ports):
 
-- **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **API Health Check**: [http://localhost:8000/healthz](http://localhost:8000/healthz)
-- **Grafana Dashboard**: [http://localhost:3000](http://localhost:3000) (Anonymous admin is enabled, and a default dashboard is preloaded).
+- **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs) - Interactive API documentation
+- **API Health Check**: [http://localhost:8000/healthz](http://localhost:8000/healthz) - Provider and model status
+- **Grafana Dashboard**: [http://localhost:3000](http://localhost:3000) - LLM observability metrics (Anonymous admin enabled)
+- **Prometheus**: [http://localhost:9090](http://localhost:9090) - Raw metrics and queries
+- **Tempo**: [http://localhost:3200](http://localhost:3200) - Trace storage (accessed via Grafana)
 
 ### Use the Terminal CLI
 
@@ -122,6 +124,23 @@ OLLAMA_MODEL=phi3
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
+### Privacy Configuration
+
+Control PII detection and masking behavior:
+
+```env
+# Enable/disable PII masking (default: true)
+PII_MASKING_ENABLED=true
+```
+
+When enabled, the system automatically detects and masks:
+- **US SSN/ITIN**: `333-32-4555` → `333-32-****`
+- **Email Addresses**: `user@domain.com` → `{{EMAIL}}`
+- **Phone Numbers**: `(555) 123-4567` → `{{PHONE}}`
+- **Names**: `John Doe` → `{{NAME}}`
+- **IP Addresses**: `192.168.1.1` → `{{IP}}`
+- **IBANs**: `DE89370400440532013000` → `{{IBAN}}`
+
 ### Optional: Azure OpenAI
 
 If you want to use Azure, update your `.env` file with the following settings:
@@ -141,77 +160,110 @@ AZURE_OPENAI_MODEL=gpt-4o-mini
 ## 🔍 Project Details
 
 <details>
+<summary><strong>🏗️ Architecture Overview</strong></summary>
+
+```mermaid
+graph TD
+    U[👤 User] --> CLI[📱 CLI Client]
+    CLI --> API[🚀 FastAPI App]
+    
+    API --> PII[🔒 Presidio PII Masker]
+    PII --> LLM[🤖 LLM Provider]
+    
+    LLM --> OLLAMA[🦙 Ollama Local]
+    LLM --> AZURE[☁️ Azure OpenAI]
+    
+    API --> OPENLIT[📊 OpenLIT]
+    OPENLIT --> OTEL[📡 OTel Collector]
+    
+    OTEL --> TEMPO[📦 Tempo]
+    OTEL --> PROM[📈 Prometheus]
+    
+    TEMPO --> GRAFANA[📊 Grafana]
+    PROM --> GRAFANA
+```
+
+**Privacy Flow:**
+1. User input → Presidio PII masker
+2. Sanitized text → LLM processing  
+3. Only masked data in telemetry traces
+
+</details>
+
+<details>
 <summary><strong>📂 Project Structure</strong></summary>
 
 ```
-.
-├── apps/
-│   ├── api/                  # FastAPI app
-│   │   ├── main.py
-│   │   ├── Dockerfile
-│   │   ├── config/system_prompt.txt
-│   │   ├── routers/inference.py
-│   │   ├── schemas/{request.py,response.py}
-│   │   ├── services/llm_client.py
-│   │   └── utils/env.py
-│   ├── cli/                  # Terminal chat client
-│   │   ├── main.py
-│   │   └── Dockerfile
-│   ├── otel_col/             # OpenTelemetry Collector
-│   │   ├── Dockerfile
-│   │   └── otel_config.yaml
-│   ├── grafana/              # Grafana config & dashboards
-│   │   ├── grafana.ini
-│   │   └── dashboards/llm_observability.json
-│   ├── grafana_tempo/        # Tempo config
-│   │   └── tempo.yaml
-│   └── prometheus/           # Prometheus config
-│       └── prometheus.yml
-├── docker-compose.yml
-├── docker-compose.override.yml
-├── Makefile
-├── .env.example
-├── pyproject.toml
-└── README.md
+apps/
+├── api/                    # FastAPI application with PII masking
+│   ├── main.py            # App initialization & lifespan
+│   ├── routers/inference.py # Chat endpoint with PII protection
+│   ├── services/llm_client.py # Unified LLM client (Ollama/Azure)
+│   └── utils/pii_masker.py # Presidio PII detection & masking
+├── cli/                    # Interactive terminal chat client
+├── otel_col/              # OpenTelemetry Collector configuration
+├── grafana/               # Grafana dashboards & provisioning
+├── grafana_tempo/         # Tempo trace storage configuration
+└── prometheus/            # Prometheus metrics configuration
 ```
+
+</details>
+
+<details>
+<summary><strong>📊 Observability Stack</strong></summary>
+
+- **OpenLIT** → LLM-specific observability with automatic instrumentation
+- **OpenTelemetry Collector** → Routes traces to Tempo, metrics to Prometheus  
+- **Grafana Tempo** → Distributed tracing storage and querying
+- **Prometheus** → Time-series metrics storage
+- **Grafana** → Visualization dashboards for metrics and traces
+
+</details>
+
+<details>
+<summary><strong>🔒 Privacy Implementation</strong></summary>
+
+**PII Detection Pipeline:**
+```python
+# Before LLM processing in apps/api/routers/inference.py
+user_message = PIIMasker.get_instance().mask(request.user_message)
+```
+
+**Supported Entity Types:**
+- Financial: US_SSN, US_ITIN, CREDIT_CARD, IBAN_CODE
+- Personal: PERSON, EMAIL_ADDRESS, PHONE_NUMBER  
+- Infrastructure: IP_ADDRESS, US_DRIVER_LICENSE, US_PASSPORT
+
+**Masking Strategies:**
+- Partial masking: `333-32-4555` → `333-32-****`
+- Token replacement: `user@domain.com` → `{{EMAIL}}`
+
 </details>
 
 <details>
 <summary><strong>📜 Makefile Commands</strong></summary>
 
-- `make help`: List all available commands.
-- `make docker-up`: Build and start all services.
-- `make docker-logs`: Tail logs from all services.
-- `make docker-cli`: Start the interactive CLI container.
-- `make docker-ps`: List running services.
-- `make docker-down`: Stop and remove all services.
-- `make docker-reset`: Nuke the entire stack (services, networks, and volumes).
-- `make docker-api-sh`: Open a shell inside the API container.
-- `make docker-rebuild-nocache`: Rebuild images without using the cache.
+- `make help` — List all available commands
+- `make docker-up` — Build and start the entire stack
+- `make docker-cli` — Open interactive chat CLI
+- `make docker-logs` — Tail logs from all services
+- `make docker-ps` — List running services
+- `make docker-down` — Stop and remove services
+- `make docker-reset` — Complete reset (including volumes)
+- `make test-api` — Smoke-test the chat endpoint
+
 </details>
 
 <details>
 <summary><strong>🌐 API Endpoints</strong></summary>
 
-- `GET /`: Root info.
-- `GET /healthz`: Health status (provider, model).
-- `POST /v1/chat`: The main chat endpoint used by the CLI.
+- `GET /` — Root info and available endpoints
+- `GET /healthz` — Health status (provider, model, PII masking)
+- `POST /v1/chat` — Main chat endpoint with PII protection
+- `GET /docs` — Interactive API documentation (Swagger UI)
+
 </details>
 
-<details>
-<summary><strong>🔑 Environment Variables</strong></summary>
-
-The most relevant settings from `.env`:
-
-- `LLM_PROVIDER`: `ollama` | `azure` (default: `ollama`)
-- `OLLAMA_MODEL`: (default: `phi3`)
-- `OLLAMA_BASE_URL`: (default: `http://localhost:11434`)
-- `AZURE_OPENAI_MODEL`: (example: `gpt-4o-mini`)
-- `AZURE_OPENAI_ENDPOINT`
-- `AZURE_OPENAI_API_KEY`
-- `AZURE_OPENAI_API_VERSION`: (default: `2024-02-15-preview`)
-- `LOG_LEVEL`: (default: `INFO`)
-</details>
 
 ---
 

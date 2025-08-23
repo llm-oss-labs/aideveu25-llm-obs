@@ -1,13 +1,16 @@
 """
 LLM client service for handling both Ollama and Azure OpenAI providers.
 Provides a unified interface for LLM interactions with provider-specific implementations.
+
+Uses OpenAI-compatible APIs for both providers to ensure stable OpenLIT instrumentation:
+- Ollama: Routes through Ollama's OpenAI-compatible /v1 endpoint
+- Azure: Uses native Azure OpenAI client
 """
 import logging
 import os
 from typing import Dict, List, Any
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from langchain_ollama import ChatOllama
-from langchain_openai import AzureChatOpenAI
+from openai import AsyncOpenAI
+from openai import AsyncAzureOpenAI
 
 from ..utils.env import Settings
 
@@ -40,23 +43,29 @@ class LLMClient:
         logger.info(f"Initialized LLM client with provider: {settings.llm_provider}")
     
     def _initialize_client(self):
-        """Initialize the appropriate LangChain client based on provider."""
+        """
+        Initialize the appropriate OpenAI client based on provider.
+
+        For Ollama: Uses OpenAI-compatible endpoint (/v1) to leverage stable OpenLIT OpenAI instrumentation
+        For Azure: Uses native Azure OpenAI client with direct instrumentation
+        
+        Both providers use the OpenAI client directly to avoid LangChain's model name issues.
+        """
         try:
             if self.settings.llm_provider == "ollama":
-                logger.info(f"Connecting to Ollama: {self.settings.ollama_model} at {self.settings.ollama_base_url}")
-                return ChatOllama(
-                    model=self.settings.ollama_model,
-                    base_url=self.settings.ollama_base_url,
-                    temperature=0.7,
+                logger.info(f"Connecting to Ollama via OpenAI-compatible API: {self.settings.ollama_model} at {self.settings.ollama_base_url}")
+                # Route through Ollama's OpenAI-compatible /v1 endpoint
+                # This avoids OpenLIT's native Ollama instrumentation bugs while maintaining full telemetry
+                return AsyncOpenAI(
+                    base_url=f"{self.settings.ollama_base_url.rstrip('/')}/v1",
+                    api_key="ollama",  # Dummy key required by OpenAI client
                 )
             elif self.settings.llm_provider == "azure":
                 logger.info(f"Connecting to Azure OpenAI: {self.settings.azure_openai_model}")
-                return AzureChatOpenAI(
-                    model=self.settings.azure_openai_model,
+                return AsyncAzureOpenAI(
                     azure_endpoint=self.settings.azure_openai_endpoint,
                     api_key=self.settings.azure_openai_api_key,
                     api_version=self.settings.azure_openai_api_version,
-                    temperature=0.7,
                 )
             else:
                 raise ValueError(f"Unsupported LLM provider: {self.settings.llm_provider}")
@@ -85,7 +94,7 @@ class LLMClient:
         if len(SESSION_STORE[session_id]) > 20:
             SESSION_STORE[session_id] = SESSION_STORE[session_id][-20:]
     
-    def _build_message_chain(self, session_id: str, user_message: str) -> List[Any]:
+    def _build_message_chain(self, session_id: str, user_message: str) -> List[Dict[str, str]]:
         """
         Build the complete message chain for the LLM.
         Includes system prompt + conversation history + new user message.
@@ -93,18 +102,16 @@ class LLMClient:
         messages = []
         
         # Add system prompt
-        messages.append(SystemMessage(content=self.system_prompt))
+        messages.append({"role": "system", "content": self.system_prompt})
         
         # Add conversation history
         history = self._get_session_history(session_id)
         for msg in history:
-            if msg["role"] == "user":
-                messages.append(HumanMessage(content=msg["content"]))
-            elif msg["role"] == "assistant":
-                messages.append(AIMessage(content=msg["content"]))
+            if msg["role"] in ["user", "assistant"]:
+                messages.append({"role": msg["role"], "content": msg["content"]})
         
         # Add new user message
-        messages.append(HumanMessage(content=user_message))
+        messages.append({"role": "user", "content": user_message})
         
         return messages
     
@@ -131,11 +138,24 @@ class LLMClient:
             # Log message count for debugging
             logger.debug(f"Sending {len(messages)} messages to {self.settings.llm_provider}")
             
-            # Call the LLM
-            response = await self.client.ainvoke(messages)
+            # Get the model name
+            model_name = (
+                self.settings.ollama_model 
+                if self.settings.llm_provider == "ollama" 
+                else self.settings.azure_openai_model
+            )
+            
+            # Call the LLM using OpenAI client directly
+            # OpenLIT will auto-instrument via OpenAI integration (stable telemetry path)
+            response = await self.client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                temperature=0.7,
+                stream=False,  # Explicit non-streaming for stable telemetry
+            )
             
             # Extract response content
-            assistant_reply = response.content if hasattr(response, 'content') else str(response)
+            assistant_reply = response.choices[0].message.content
             
             # Save both user message and assistant reply to session
             self._save_to_session(session_id, "user", user_message)
@@ -168,12 +188,12 @@ class LLMClient:
         return False
     
     def get_provider_info(self) -> Dict[str, str]:
-        """Get current provider and model information."""
+        """Get current provider and model information for monitoring and debugging."""
         if self.settings.llm_provider == "ollama":
             return {
-                "provider": "ollama",
+                "provider": "ollama (via OpenAI API)",
                 "model": self.settings.ollama_model,
-                "base_url": self.settings.ollama_base_url
+                "base_url": f"{self.settings.ollama_base_url}/v1"
             }
         else:
             return {

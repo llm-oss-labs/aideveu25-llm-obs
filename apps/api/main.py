@@ -17,7 +17,7 @@ from .services.llm_client import LLMClient
 from .routers import inference
 from .schemas.response import HealthResponse
 
-from traceloop.sdk import Traceloop
+import openlit
 
 # Load environment variables
 load_dotenv()
@@ -37,7 +37,7 @@ app_state = {
     "is_healthy": False
 }
 
-Traceloop.init()
+openlit.init(capture_message_content=True)
 
 
 def load_system_prompt() -> str:
@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
-    title="LLM Workshop API",
+    title="LLM Observability Workshop API",
     description="""
     A minimal FastAPI application for workshop demonstrations of LLM integration.
     
@@ -113,7 +113,6 @@ app = FastAPI(
     ## Features
     - Session-based conversation history
     - Environment-based provider switching
-    - Minimal LangChain integration
     - Ready for observability tooling
     
     ## Configuration
