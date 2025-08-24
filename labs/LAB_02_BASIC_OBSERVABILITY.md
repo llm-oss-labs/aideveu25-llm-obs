@@ -1,16 +1,14 @@
 # Lab 2: Basic Observability with OpenLIT 📊
-**Duration**: 45 minutes  
-**Difficulty**: Intermediate  
+**Duration**: 15 minutes  
 
 ## 🎯 Objective
-Add telemetry collection to your LLM application using OpenLIT SDK and OpenTelemetry Collector. You'll learn to capture, export, and examine LLM-specific telemetry data in a debug mode before setting up visualization tools.
+Add telemetry collection to your LLM application using OpenLIT SDK and OpenTelemetry Collector. You'll learn to capture, export, and examine LLM-specific telemetry data in debug mode before setting up visualization tools.
 
 ## 🎓 What You'll Learn
 - OpenTelemetry fundamentals and architecture
 - Automatic LLM instrumentation with OpenLIT
-- Trace vs metric data concepts
+- Trace vs. metric data concepts
 - OTLP (OpenTelemetry Protocol) basics
-- Telemetry data structure and semantics
 - Debug-mode telemetry inspection
 
 ## 📋 Prerequisites
@@ -19,7 +17,7 @@ Add telemetry collection to your LLM application using OpenLIT SDK and OpenTelem
 
 ## 🧪 Lab Steps
 
-### Step 1: Apply the OpenLIT Observability Patch (5 minutes)
+### Step 1: Apply the OpenLIT Observability Patch
 
 ```bash
 # Stop the current services
@@ -35,15 +33,11 @@ git apply labs/patches/lab2-add-basic-observability.patch
 - OpenTelemetry Collector service with debug configuration
 - Basic OTEL environment variables
 
-### Step 2: Examine the Changes (10 minutes)
+### Step 2: Examine the Changes
 
 #### OpenLIT Integration
-```bash
-# Check the API changes
-diff -u apps/api/main.py.orig apps/api/main.py || true
-```
 
-**Key Addition:**
+**What the patch adds to `apps/api/main.py`:**
 ```python
 import openlit
 openlit.init(capture_message_content=True)
@@ -57,19 +51,19 @@ openlit.init(capture_message_content=True)
 #### OpenTelemetry Collector Configuration
 ```bash
 # Examine the OTel Collector setup
-cat apps/otel_col/otel_config.yaml
+code apps/otel_col/otel_config.yaml
 ```
 
 **Key Components:**
 - **Receivers**: Accept OTLP data on ports 4317 (gRPC) and 4318 (HTTP)
-- **Processors**: Batch processing and memory management
+- **Processors**: Batch processing and memory management  
 - **Exporters**: Debug exporter for human-readable output
 - **Pipelines**: Separate processing for traces and metrics
 
 #### Docker Services
 ```bash
 # Check the new service definition
-grep -A 15 "otelcol:" docker-compose.yml
+code docker-compose.yml
 ```
 
 **Service Details:**
@@ -78,7 +72,7 @@ grep -A 15 "otelcol:" docker-compose.yml
 - Exposes OTLP receiver ports
 - Volume mounts configuration
 
-### Step 3: Build and Start with Observability (5 minutes)
+### Step 3: Build and Start with Observability
 
 ```bash
 # Build the new services (OTel Collector)
@@ -96,7 +90,7 @@ Look for:
 - OTel Collector startup messages
 - OTLP receivers starting on ports 4317/4318
 
-### Step 4: Generate Telemetry Data (10 minutes)
+### Step 4: Generate Telemetry Data
 
 #### Start a Chat Session
 ```bash
@@ -104,24 +98,23 @@ Look for:
 make docker-cli
 ```
 
-**Have Several Conversations:**
-1. "What is OpenTelemetry?"
-2. "Explain the difference between traces and metrics"
-3. "What are the benefits of observability?"
-4. "How does automatic instrumentation work?"
+**🗣️ Interact with the Chat CLI:**
 
-#### Use the API Directly
-```bash
-# In another terminal, make API calls
-curl -X POST "http://localhost:8000/v1/chat" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "session_id": "api-test-session",
-    "user_message": "What is the purpose of telemetry data?"
-  }'
+Once in the CLI, start a conversation to generate telemetry:
+
+```
+Type your message and press Enter. Ctrl+C to cancel a request, Ctrl+D to quit.
+
+You: Hello, how are you?
 ```
 
-### Step 5: Examine Telemetry Output (15 minutes)
+**💡 Try different types of interactions:**
+- Simple greetings: `Hi there!`
+- Technical queries: `What is OpenTelemetry and how does it work?`
+
+Each message you send will generate trace data that you can examine in the next step!
+
+### Step 5: Examine Telemetry Output
 
 #### View Debug Telemetry
 ```bash
@@ -134,32 +127,74 @@ docker logs otelcol | grep -A 50 "ResourceSpans"
 ResourceSpans #0
 Resource SchemaURL: 
 Resource attributes:
-     -> service.name: Str(fastapi-chatbot)
+     -> telemetry.sdk.language: Str(python)
      -> telemetry.sdk.name: Str(openlit)
-     -> telemetry.sdk.version: Str(1.35.x)
+     -> telemetry.sdk.version: Str(1.34.1)
+     -> service.name: Str(fastapi-chatbot)
+     -> deployment.environment: Str(default)
 ScopeSpans #0
+ScopeSpans SchemaURL: https://opentelemetry.io/schemas/1.11.0
+InstrumentationScope opentelemetry.instrumentation.httpx 0.55b1
 ...
 ```
 
 #### Analyze a Complete Trace
-Look for these key attributes in the trace output:
+Each trace contains **two spans** showing the complete request flow:
 
-**LLM-Specific Attributes:**
+**🔍 Span #1: HTTP Client Request (HTTPX)**
 ```
+Name           : POST
+Kind           : Client
+Trace ID       : fd3b0b13ccb9356840b523ce21a47a7d
+Parent ID      : 465c8216da65625c
+ID             : ba44da76c6ddc17d
+Attributes:
+     -> http.method: Str(POST)
+     -> http.url: Str(http://host.docker.internal:11434/v1/chat/completions)
+     -> http.status_code: Int(200)
+```
+
+**🔍 Span #2: LLM Operation (OpenLIT)**
+```
+Name           : chat phi3
+Kind           : Client
+Trace ID       : fd3b0b13ccb9356840b523ce21a47a7d
+Parent ID      : 
+ID             : 465c8216da65625c
+```
+
+**🤖 LLM-Specific Attributes:**
+```
+-> gen_ai.operation.name: Str(chat)
+-> gen_ai.system: Str(openai)
 -> gen_ai.request.model: Str(phi3)
--> gen_ai.prompt: Str(user's question)
--> gen_ai.completion: Str(assistant's response)
--> gen_ai.usage.input_tokens: Int(142)
--> gen_ai.usage.output_tokens: Int(89)
--> gen_ai.usage.cost: Float(0.000023)
+-> gen_ai.response.model: Str(phi3)
+-> gen_ai.usage.input_tokens: Int(176)
+-> gen_ai.usage.output_tokens: Int(63)
+-> gen_ai.client.token.usage: Int(239)
+-> gen_ai.usage.cost: Int(0)
+-> gen_ai.server.time_to_first_token: Double(4.393756151199341)
+-> gen_ai.request.temperature: Double(0.7)
+-> gen_ai.request.max_tokens: Int(-1)
+-> gen_ai.response.finish_reasons: Slice(["stop"])
 ```
 
-**Standard Attributes:**
+**💬 Content Capture (if enabled):**
 ```
--> http.method: Str(POST)
--> http.status_code: Int(200)
--> span.kind: Str(client)
--> operation.name: Str(chat_completion)
+-> gen_ai.prompt: Str(system: You are a helpful AI assistant...
+user: hi)
+-> gen_ai.completion: Str(Hello! How can I assist you today?...)
+```
+
+**📊 Performance & Request Details:**
+```
+-> gen_ai.server.time_per_output_token: Int(0)
+-> gen_ai.request.is_stream: Bool(false)
+-> gen_ai.request.frequency_penalty: Double(0)
+-> gen_ai.request.presence_penalty: Double(0)
+-> gen_ai.request.top_p: Double(1)
+-> gen_ai.response.id: Str(chatcmpl-751)
+-> gen_ai.response.system_fingerprint: Str(fp_ollama)
 ```
 
 #### Check Metrics Output
@@ -168,190 +203,75 @@ Look for these key attributes in the trace output:
 docker logs otelcol | grep -A 20 "ResourceMetrics"
 ```
 
-**Key Metrics:**
-- `gen_ai_requests_total` - Request counter
-- `gen_ai_client_token_usage` - Token consumption
-- `gen_ai_usage_cost_USD` - Cost tracking
-- `gen_ai_client_operation_duration` - Response time
+**🔍 Sample Metrics Structure:**
+```
+ResourceMetrics #0
+Resource attributes:
+     -> service.name: Str(fastapi-chatbot)
+     -> telemetry.sdk.name: Str(openlit)
+ScopeMetrics #0
+InstrumentationScope openlit.otel.metrics 0.1.0
+```
 
-### Step 6: Understanding Telemetry Concepts (10 minutes)
+**📊 Key LLM Metrics Captured:**
+```
+Metric: gen_ai.total.requests
+  Description: Number of requests to GenAI
+  Value: 1
 
-#### Traces vs Metrics
-**Traces** (What happened):
+Metric: gen_ai.usage.input_tokens
+  Description: Number of prompt tokens processed
+  Value: 31
+
+Metric: gen_ai.usage.output_tokens
+  Description: Number of completion tokens processed
+  Value: 0
+
+Metric: gen_ai.server.time_to_first_token
+  Description: Time to generate first token
+  Sum: 9.264803 seconds
+
+Metric: gen_ai.client.operation.duration
+  Description: GenAI operation duration
+  Sum: 9.264814 seconds
+
+Metric: gen_ai.client.token.usage
+  Description: Total tokens used (input + output)
+  Sum: 31.000000 tokens
+```
+
+### Step 6: Finding Your Telemetry Data
+
+Now that you've generated telemetry, here are quick ways to find specific data:
+
+#### Find Recent Traces
 ```bash
-# Trace example shows request flow
-echo "Trace = Individual request journey with timing and context"
-echo "- Start: User sends message"
-echo "- Span 1: FastAPI receives request"  
-echo "- Span 2: LLM client processes"
-echo "- Span 3: Ollama/Azure generates response"
-echo "- End: Response returned to user"
+# Get the latest LLM operation traces
+docker logs otelcol | grep "Name.*chat" | tail -5
+
+# Find specific trace IDs from recent requests
+docker logs otelcol | grep "Trace ID" | tail -3
 ```
 
-**Metrics** (How much/how often):
+#### Find Token Usage
 ```bash
-# Metrics aggregate data over time
-echo "Metrics = Aggregated measurements over time"
-echo "- Request rate: 5 requests/minute"
-echo "- Average tokens: 150 input + 75 output"
-echo "- Total cost: $0.002 in last hour"
+# See input and output token counts
+docker logs otelcol | grep "gen_ai.usage.*tokens.*Value:"
 ```
 
-#### OpenLIT Instrumentation Magic
-```bash
-# See what OpenLIT automatically captures
-cat << EOF
-OpenLIT automatically instruments:
-📊 Request/Response metadata
-🕐 Timing information  
-💰 Cost calculation (estimated)
-🔢 Token usage counting
-🏷️  Model and provider identification
-🚫 Error detection and classification
-📍 Distributed tracing context
-EOF
-```
+**💡 Note on Debug Mode Limitations:**
+While these commands help you explore your telemetry data, searching through raw logs is not efficient for production monitoring. This debug approach is useful for understanding the data structure, but you need proper visualization tools to:
+- Store historical data
+- Create dashboards and charts  
+- Set up alerts and monitoring
+- Analyze trends over time
 
-## 🧪 Experiments to Try
+**In Lab 3, we'll add Grafana, Prometheus, and Tempo to provide powerful visualization and analysis capabilities for your telemetry data.**
 
-### 1. Compare Different Prompts
-Test how prompt complexity affects metrics:
-
-```bash
-# Simple prompt
-curl -X POST "http://localhost:8000/v1/chat" \
-  -d '{"session_id": "test1", "user_message": "Hi"}'
-
-# Complex prompt  
-curl -X POST "http://localhost:8000/v1/chat" \
-  -d '{"session_id": "test2", "user_message": "Explain quantum computing in detail with examples and applications"}'
-
-# Check logs for token differences
-docker logs otelcol | grep "gen_ai.usage" | tail -4
-```
-
-### 2. Session Context Impact
-See how conversation history affects token usage:
-
-```bash
-# Start new session
-curl -X POST "http://localhost:8000/v1/chat" \
-  -d '{"session_id": "context-test", "user_message": "What is Docker?"}'
-
-# Continue conversation (includes history)
-curl -X POST "http://localhost:8000/v1/chat" \
-  -d '{"session_id": "context-test", "user_message": "How is it different from VMs?"}'
-```
-
-### 3. Error Telemetry
-Trigger an error to see how it's captured:
-
-```bash
-# Temporarily break the service
-make docker-down
-
-# Try to make a request (will fail)
-curl -X POST "http://localhost:8000/v1/chat" \
-  -d '{"session_id": "error-test", "user_message": "This will fail"}'
-
-# Restart and check error telemetry
-make docker-up
-```
-
-## 🔍 Deep Dive: Telemetry Data Analysis
-
-### Trace Anatomy
-Each trace contains:
-
-```
-🔗 Trace ID: Unique identifier for the entire request
-├── 📊 Root Span: FastAPI HTTP request
-│   ├── ⏱️  Duration: Total request time
-│   ├── 🏷️  Tags: HTTP method, status, etc.
-│   └── 📝 Events: Request start/end
-└── 🤖 Child Span: LLM operation
-    ├── 💬 Prompt: User input (if capture enabled)
-    ├── 🤖 Response: LLM output (if capture enabled)  
-    ├── 🔢 Tokens: Input/output counts
-    ├── 💰 Cost: Estimated price
-    └── ⚡ Performance: TTFT, tokens/sec
-```
-
-### Metric Types
-```bash
-# Counter: Ever-increasing values
-echo "gen_ai_requests_total: 42 (total requests)"
-
-# Gauge: Point-in-time values  
-echo "gen_ai_active_sessions: 3 (current sessions)"
-
-# Histogram: Distribution of values
-echo "gen_ai_request_duration: [0.5s, 1.2s, 0.8s, ...]"
-
-# Summary: Percentiles and counts
-echo "gen_ai_token_usage: p50=150, p95=500, count=100"
-```
-
-## ❌ Troubleshooting
-
-### Issue: No Telemetry Data Appearing
-```bash
-# Check if OpenLIT initialized
-docker logs llm-workshop-api | grep -i openlit
-
-# Verify OTel Collector is receiving data
-docker logs otelcol | grep "OTLP receiver"
-
-# Ensure environment variables are set
-docker exec llm-workshop-api env | grep OTEL
-```
-
-### Issue: OTel Collector Startup Fails
-```bash
-# Check configuration syntax
-docker logs otelcol | grep -i error
-
-# Verify config file
-cat apps/otel_col/otel_config.yaml | yaml_lint || echo "Check YAML syntax"
-```
-
-### Issue: Missing Trace/Metric Data
-```bash
-# Confirm capture_message_content setting
-grep -n "capture_message_content" apps/api/main.py
-
-# Check exporter configuration
-grep -A 5 "exporters:" apps/otel_col/otel_config.yaml
-```
-
-## 🎯 Success Criteria
-- [ ] OpenLIT SDK successfully initializes in API logs
-- [ ] OTel Collector starts and receives data
-- [ ] Trace data appears with LLM-specific attributes
-- [ ] Metrics show request counts and token usage
-- [ ] Debug output shows structured telemetry data
-- [ ] You understand traces vs metrics concepts
-
-## 📚 Key Takeaways
-1. **Automatic Instrumentation**: OpenLIT requires minimal code changes
-2. **Rich Context**: LLM operations generate detailed telemetry
-3. **Cost Tracking**: Token usage translates to estimated costs
-4. **Performance Visibility**: Response times and throughput are captured
-5. **Debug Mode**: Raw telemetry helps understand data structure
-6. **Standards**: OpenTelemetry provides vendor-neutral telemetry
-
-## 🚀 Next Steps
-You now have telemetry data flowing, but it's only visible in debug logs. While this gives you the raw data, it's not practical for monitoring production systems. 
-
-In **Lab 3**, we'll add a complete visualization stack (Grafana, Prometheus, Tempo) to turn this raw telemetry into actionable dashboards and alerts.
-
-**Current Limitations:**
-- ❌ No historical data storage
-- ❌ No visual dashboards  
-- ❌ No alerting capabilities
-- ❌ Difficult to analyze trends
-- ❌ Not suitable for production monitoring
-
----
+**🎯 What You've Accomplished:**
+- ✅ **Automatic instrumentation** with just 2 lines of code
+- ✅ **Request tracing** showing the complete flow from CLI → API → LLM
+- ✅ **Performance metrics** capturing response times and token usage
+- ✅ **Debug visibility** into your LLM application's behavior
 
 **Ready for visualization?** → [Lab 3: Full Observability Stack](LAB_03_FULL_OBSERVABILITY.md)
