@@ -1,0 +1,35 @@
+services:
+  llm-workshop-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file: .env
+    restart: unless-stopped
+
+  llm-workshop-cli:
+    build:
+      context: .
+      dockerfile: apps/cli/Dockerfile
+    environment:
+      - API_BASE_URL=http://llm-workshop-api:8000/v1
+    depends_on:
+      - llm-workshop-api
+    stdin_open: true # keep STDIN open for interactive CLI
+    tty: true # allocate a pseudo-TTY for nice prompts
+
+  otelcol:
+    build: ./apps/otel_col
+    container_name: otelcol
+    deploy:
+      resources:
+        limits:
+          memory: 125M
+    restart: unless-stopped
+    volumes:
+      - ./apps/otel_col/otel_config.yaml:/etc/otelcol-config.yml
+    ports:
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP http receiver
+      # - "9464:9464"   # Optional: expose Prometheus scrape endpoint to host
