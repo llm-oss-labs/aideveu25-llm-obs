@@ -43,7 +43,8 @@ class PIIMasker:
                 "US_PASSPORT": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 3, "from_end": True}),
                 "US_DRIVER_LICENSE": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 4, "from_end": True}),
                 # Handle common false positives for location entities
-                "LOCATION": OperatorConfig("keep", {}),  # Keep location entities to avoid masking "US", "UK", etc.
+                # Keep location entities to avoid masking "US", "UK", etc.
+                "LOCATION": OperatorConfig("keep", {}),
             }
         else:
             self.anonymizers = anonymizers
@@ -78,7 +79,8 @@ class PIIMasker:
                 detected_text = text[r.start:r.end].upper()
                 # Common country/state abbreviations that are often false positives
                 # when appearing near sensitive data like SSN, credit cards, etc.
-                common_abbreviations = {"US", "UK", "CA", "NY", "TX", "FL", "IL", "PA", "OH", "MI"}
+                common_abbreviations = {"US", "UK", "CA",
+                                        "NY", "TX", "FL", "IL", "PA", "OH", "MI"}
                 if detected_text in common_abbreviations and r.score < 0.9:
                     # Skip this entity if it's a common abbreviation with low confidence
                     continue
