@@ -92,14 +92,37 @@ flowchart TB
 
 ## 🧪 Lab Steps
 
-### Step 1: Reset to Baseline
-First, we'll apply the reset patch to remove all observability components and start with a clean baseline.
+### Step 1: Switch to Lab 1 (Baseline)
+First, we'll switch to the baseline configuration using our lab management system.
 
 🛑 **CRITICAL FIRST STEP**: You **MUST** run this command before proceeding! Skipping this will cause the entire lab to fail because observability components from previous labs will conflict with the baseline setup.
 
 ```bash
-# Apply the reset patch to remove observability
-git apply labs/patches/lab1-reset-to-baseline.patch
+# Copy environment configuration
+cp .env.example .env
+
+# Switch to Lab 1 baseline configuration
+make lab1
+```
+
+This command will:
+- Remove all observability components (OpenLIT, OTEL Collector, Grafana, etc.)
+- Reset API code to baseline (no instrumentation)
+- Update dependencies to minimal set
+- Configure Docker Compose for basic services only
+
+**🔍 Verify the Switch:**
+```bash
+# Check current lab status
+make status
+```
+
+You should see:
+```
+📊 Current lab configuration:
+   OpenLIT: ❌ Disabled
+   PII Masking: ❌ Disabled
+   Observability Stack: ❌ None
 ```
 
 
@@ -247,7 +270,8 @@ make docker-logs | grep -i error
 ```
 
 ## 🎯 Success Criteria
-- [ ] Reset patch applied successfully 
+- [ ] Lab 1 switch completed successfully (`make lab1`)
+- [ ] Status shows baseline configuration (`make status`)
 - [ ] Application builds and starts without errors
 - [ ] Health check returns "healthy" status with correct provider/model
 - [ ] CLI chat responds to questions appropriately

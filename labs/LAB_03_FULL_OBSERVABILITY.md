@@ -132,22 +132,36 @@ flowchart TB
 
 ## 🧪 Lab Steps
 
-### Step 1: Apply the Full Observability Patch
+### Step 1: Switch to Lab 3 (Full Observability Stack)
 
 ```bash
 # Stop current services
 make docker-down
 
-# Apply the patch to add visualization stack
-git apply labs/patches/lab3-add-full-observability-stack.patch
+# Switch to Lab 3 configuration
+make lab3
 ```
 
-**🔍 What This Patch Adds:**
+**🔍 What This Switch Adds:**
 - **Grafana**: Visualization and dashboards
 - **Prometheus**: Metrics storage and querying
 - **Tempo**: Distributed trace storage
 - **Updated OTel Collector**: Routes data to storage backends (Prometheus & Tempo)
 - **Pre-built Dashboard**: LLM-specific visualizations
+
+**Verify the Switch:**
+```bash
+# Check current lab status
+make status
+```
+
+You should see:
+```
+📊 Current lab configuration:
+   OpenLIT: ✅ Enabled
+   PII Masking: ❌ Disabled
+   Observability Stack: ✅ Full (Grafana + Prometheus + Tempo)
+```
 
 ### Step 2: Examine the New Architecture
 

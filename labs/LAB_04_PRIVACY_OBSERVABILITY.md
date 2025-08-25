@@ -51,17 +51,17 @@ curl -s "http://localhost:3200/api/search?limit=5" | jq -r '.traces[].traceID' |
 - Compliance violations (GDPR, HIPAA, etc.)
 - Regulatory audit risks
 
-### Step 2: Apply the Privacy Protection Patch
+### Step 2: Switch to Lab 4 Configuration
 
 ```bash
-# Stop services to apply the patch
+# Stop services to switch to Lab 4
 make docker-down
 
-# Apply PII masking implementation
-git apply labs/patches/lab4-add-privacy-protection.patch
+# Switch to Lab 4 configuration with PII masking
+make lab4
 ```
 
-**🔍 What This Patch Adds:**
+**🔍 What This Adds:**
 - **Presidio Dependencies**: PII analyzer and anonymizer
 - **PIIMasker Class**: Intelligent PII detection and masking
 - **Integration**: Automatic masking in inference pipeline
