@@ -17,7 +17,6 @@ from .services.llm_client import LLMClient
 from .routers import inference
 from .schemas.response import HealthResponse
 
-import openlit
 
 # Load environment variables
 load_dotenv()
@@ -36,8 +35,6 @@ app_state = {
     "system_prompt": None,
     "is_healthy": False
 }
-
-openlit.init(capture_message_content=True)
 
 
 def load_system_prompt() -> str:
