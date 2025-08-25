@@ -9,7 +9,7 @@ class ChatResponse(BaseModel):
     """Response schema for chat endpoint."""
     session_id: str = Field(..., description="Session identifier")
     reply: str = Field(..., description="LLM-generated response")
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -22,18 +22,19 @@ class ChatResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Response schema for health check endpoint."""
-    status: str = Field(..., description="Service health status", pattern="^(healthy|degraded|unhealthy)$")
+    status: str = Field(..., description="Service health status",
+                        pattern="^(healthy|degraded|unhealthy)$")
     provider: str = Field(..., description="LLM provider (ollama or azure)")
     model: str = Field(..., description="Model being used")
-    details: Optional[str] = Field(None, description="Additional details if service is degraded")
-    
+    details: Optional[str] = Field(
+        None, description="Additional details if service is degraded")
+
     model_config = {
         "json_schema_extra": {
             "example": {
                 "status": "healthy",
                 "provider": "ollama",
-                "model": "phi3"
+                "model": "phi4-mini"
             }
         }
     }
-    

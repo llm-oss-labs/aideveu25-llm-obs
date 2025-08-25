@@ -26,7 +26,7 @@ flowchart TB
     end
 
     subgraph PROVIDERS["🤖 LLM Providers"]
-        OLLAMA["Ollama<br/>Port: 11434<br/>phi3 model<br/>Local"]
+        OLLAMA["Ollama<br/>Port: 11434<br/>phi4-mini model<br/>Local"]
         AZURE["Azure OpenAI<br/>gpt-4o-mini<br/>Cloud API"]
     end
 

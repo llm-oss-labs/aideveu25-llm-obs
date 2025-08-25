@@ -131,7 +131,7 @@ Choose between `ollama` (default) and `azure`.
 LLM_PROVIDER=ollama
 
 # --- Ollama Settings ---
-OLLAMA_MODEL=phi3
+OLLAMA_MODEL=phi4-mini
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
@@ -281,7 +281,7 @@ user_message = PIIMasker.get_instance().mask(request.user_message)
 ## 🛠️ Troubleshooting
 
 - **Health Check Degraded**: Check your `.env` provider settings and ensure the chosen backend (Ollama or Azure) is reachable. Restart the stack with `make docker-down && make docker-up`.
-- **Ollama in Codespaces**: The first chat may be slow if the model (`phi3`) needs to be downloaded.
+- **Ollama in Codespaces**: The first chat may be slow if the model (`phi4-mini`) needs to be downloaded.
 - **Ports Not Opening**: If ports 8000 (API) or 3000 (Grafana) aren't forwarded in Codespaces, open them manually from the **Ports** tab.
 - **Stuck Containers**: If something seems wrong, run `make docker-reset` to completely reset the environment.
 

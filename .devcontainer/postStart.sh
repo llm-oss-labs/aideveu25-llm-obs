@@ -11,7 +11,7 @@ fi
 
 # Allow override via containerEnv; default to bind-all for dev convenience
 export OLLAMA_HOST="${OLLAMA_HOST:-0.0.0.0:11434}"
-MODEL="${OLLAMA_MODEL:-phi3:latest}"
+MODEL="${OLLAMA_MODEL:-phi4-mini:latest}"
 PORT="${OLLAMA_HOST##*:}"
 
 # Start Ollama service in the background if not already running

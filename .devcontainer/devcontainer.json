@@ -45,7 +45,7 @@
 	},
 	"containerEnv": {
 		"OLLAMA_HOST": "0.0.0.0:11434",
-		"OLLAMA_MODEL": "phi3:latest"
+		"OLLAMA_MODEL": "phi4-mini:latest"
 	},
 	// VS Code ergonomics
 	"customizations": {

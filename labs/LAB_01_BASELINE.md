@@ -18,7 +18,7 @@ flowchart TB
     end
 
     subgraph PROVIDERS["🤖 LLM Providers"]
-        OLLAMA["Ollama<br/>Port: 11434<br/>phi3 model<br/>Local"]
+        OLLAMA["Ollama<br/>Port: 11434<br/>phi4-mini model<br/>Local"]
         AZURE["Azure OpenAI<br/>gpt-4o-mini<br/>Cloud API"]
     end
 
@@ -147,7 +147,7 @@ cat .env | grep -E "(LLM_PROVIDER|OLLAMA)"
 **Configuration:**
 ```env
 LLM_PROVIDER=ollama
-OLLAMA_MODEL=phi3
+OLLAMA_MODEL=phi4-mini
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
@@ -193,7 +193,7 @@ curl http://localhost:8000/healthz
 {
   "status": "healthy",
   "provider": "ollama",
-  "model": "phi3",
+  "model": "phi4-mini",
   "details": null
 }
 ```
