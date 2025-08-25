@@ -96,21 +96,35 @@ flowchart TB
 
 ## 🧪 Lab Steps
 
-### Step 1: Apply the OpenLIT Observability Patch
+### Step 1: Switch to Lab 2 (Basic Observability)
 
 ```bash
 # Stop the current services
 make docker-down
 
-# Apply the patch to add basic observability
-git apply labs/patches/lab2-add-basic-observability.patch
+# Switch to Lab 2 configuration
+make lab2
 ```
 
-**🔍 What This Patch Adds:**
+**🔍 What This Switch Adds:**
 - OpenLIT SDK to `pyproject.toml`
 - OpenLIT instrumentation in `apps/api/main.py`
 - OpenTelemetry Collector service with debug configuration
 - Basic OTEL environment variables
+
+**Verify the Switch:**
+```bash
+# Check current lab status
+make status
+```
+
+You should see:
+```
+📊 Current lab configuration:
+   OpenLIT: ✅ Enabled
+   PII Masking: ❌ Disabled
+   Observability Stack: 🔶 Basic (OTEL Collector only)
+```
 
 ### Step 2: Examine the Changes
 
