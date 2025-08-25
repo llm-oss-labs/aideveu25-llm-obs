@@ -23,10 +23,10 @@ By the end of this workshop, you will:
 ### Progressive Learning Path
 | Lab | Title | Duration | Patch | Key Learning |
 |-----|-------|----------|-------|--------------|
-| [Lab 1](LAB_01_BASELINE.md) | Baseline Setup | 30 min | `patches/lab1-reset-to-baseline.patch` | LLM app fundamentals |
-| [Lab 2](LAB_02_BASIC_OBSERVABILITY.md) | Basic Observability | 45 min | `patches/lab2-add-basic-observability.patch` | OpenLIT + OpenTelemetry |
-| [Lab 3](LAB_03_FULL_OBSERVABILITY.md) | Full Observability Stack | 45 min | `patches/lab3-add-full-observability-stack.patch` | Grafana + Prometheus + Tempo |
-| [Lab 4](LAB_04_PRIVACY_OBSERVABILITY.md) | Privacy-Conscious Observability | 30 min | `patches/lab4-add-privacy-protection.patch` | PII masking with Presidio |
+| [Lab 1](LAB_01_BASELINE.md) | Baseline Setup | 10 min | `labs/patches/lab1-reset-to-baseline.patch` | LLM app fundamentals |
+| [Lab 2](LAB_02_BASIC_OBSERVABILITY.md) | Basic Observability with OpenLIT | 15 min | `labs/patches/lab2-add-basic-observability.patch` | OpenLIT + OpenTelemetry |
+| [Lab 3](LAB_03_FULL_OBSERVABILITY.md) | Full Observability Stack | 15 min | `labs/patches/lab3-add-full-observability-stack.patch` | Grafana + Prometheus + Tempo |
+| [Lab 4](LAB_04_PRIVACY_OBSERVABILITY.md) | Privacy-Conscious Observability | 10 min | `labs/patches/lab4-add-privacy-protection.patch` | PII masking with Presidio |
 
 ### What You'll Build
 ```
@@ -72,7 +72,7 @@ cp .env.example .env
 
 # Start with Lab 1
 cd labs
-cat LAB_01_BASELINE.md
+code LAB_01_BASELINE.md
 ```
 
 ## 🔧 Essential Commands
@@ -117,38 +117,6 @@ git apply --stat labs/patches/lab2-add-basic-observability.patch
 git apply --check labs/patches/lab3-add-full-observability-stack.patch
 ```
 
-## 🧪 Key Experiments
-
-### Performance Testing
-```bash
-# Load testing
-for i in {1..10}; do
-  curl -s -X POST "http://localhost:8000/v1/chat" \
-    -d "{\"session_id\": \"load-$i\", \"user_message\": \"Test $i\"}" &
-done
-wait
-```
-
-### Privacy Testing
-```bash
-# Test PII masking (Lab 4)
-curl -X POST "http://localhost:8000/v1/chat" \
-  -d '{
-    "session_id": "pii-test",
-    "user_message": "My email is test@example.com and SSN is 123-45-6789"
-  }'
-```
-
-### Cost Analysis
-```bash
-# Compare simple vs complex prompts
-curl -X POST "http://localhost:8000/v1/chat" \
-  -d '{"session_id": "cost1", "user_message": "Hi"}'
-
-curl -X POST "http://localhost:8000/v1/chat" \
-  -d '{"session_id": "cost2", "user_message": "Write a detailed analysis of AI"}'
-```
-
 ## 📊 Monitoring Dashboard
 
 ### Key Metrics to Watch
@@ -179,8 +147,8 @@ make docker-reset && make docker-up
 
 **No telemetry data**:
 ```bash
-# Verify OpenLIT initialization
-docker logs llm-workshop-api | grep openlit
+# Verify OpenLIT initialization (compose-managed service)
+docker compose logs llm-workshop-api | grep -i openlit
 # Check OTel Collector
 docker logs otelcol | grep -i error
 ```
@@ -192,13 +160,6 @@ docker logs otelcol | grep -i error
 make docker-cli
 ```
 
-**PII masking not working**:
-```bash
-# Check health endpoint
-curl http://localhost:8000/healthz | jq '.pii_masking_enabled'
-# Verify Presidio installation
-docker exec llm-workshop-api python -c "import presidio_analyzer"
-```
 
 ## 🎯 Success Criteria
 
@@ -225,19 +186,6 @@ docker exec llm-workshop-api python -c "import presidio_analyzer"
 - [ ] Telemetry shows masked values
 - [ ] Application functionality remains intact
 - [ ] Understand privacy trade-offs
-
-## 🔗 Additional Resources
-
-### Documentation
-- [OpenLIT Documentation](https://docs.openlit.io/)
-- [OpenTelemetry Python](https://opentelemetry.io/docs/instrumentation/python/)
-- [Grafana Dashboards](https://grafana.com/docs/grafana/latest/dashboards/)
-- [Presidio Framework](https://microsoft.github.io/presidio/)
-
-### Best Practices
-- [Observability Best Practices](https://opentelemetry.io/docs/concepts/best-practices/)
-- [Privacy by Design](https://iapp.org/resources/article/privacy-by-design-the-7-foundational-principles/)
-- [LLM Monitoring Guide](https://www.langchain.com/monitoring)
 
 ---
 

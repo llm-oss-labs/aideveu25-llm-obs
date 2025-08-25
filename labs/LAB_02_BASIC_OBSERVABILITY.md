@@ -19,7 +19,7 @@ flowchart TB
     end
 
     subgraph PROVIDERS["🤖 LLM Providers"]
-        OLLAMA["Ollama<br/>Port: 11434<br/>phi3 model<br/>Local"]
+        OLLAMA["Ollama<br/>Port: 11434<br/>phi4-mini model<br/>Local"]
         AZURE["Azure OpenAI<br/>gpt-4o-mini<br/>Cloud API"]
     end
 
@@ -235,7 +235,7 @@ Attributes:
 
 **🔍 Span #2: LLM Operation (OpenLIT)**
 ```
-Name           : chat phi3
+Name           : chat phi4-mini
 Kind           : Client
 Trace ID       : fd3b0b13ccb9356840b523ce21a47a7d
 Parent ID      : 
@@ -246,8 +246,8 @@ ID             : 465c8216da65625c
 ```
 -> gen_ai.operation.name: Str(chat)
 -> gen_ai.system: Str(openai)
--> gen_ai.request.model: Str(phi3)
--> gen_ai.response.model: Str(phi3)
+-> gen_ai.request.model: Str(phi4-mini)
+-> gen_ai.response.model: Str(phi4-mini)
 -> gen_ai.usage.input_tokens: Int(176)
 -> gen_ai.usage.output_tokens: Int(63)
 -> gen_ai.client.token.usage: Int(239)

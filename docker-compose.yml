@@ -33,8 +33,6 @@ services:
       - "4317:4317" # OTLP gRPC receiver
       - "4318:4318" # OTLP http receiver
       # - "9464:9464"   # Optional: expose Prometheus scrape endpoint to host
-    depends_on:
-      - tempo
 
   grafana:
     image: grafana/grafana:12.1.1

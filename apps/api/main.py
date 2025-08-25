@@ -49,7 +49,8 @@ def load_system_prompt() -> str:
         logger.info(f"Loaded system prompt from {config_path}")
         return prompt
     except FileNotFoundError:
-        logger.warning(f"System prompt file not found at {config_path}, using default")
+        logger.warning(
+            f"System prompt file not found at {config_path}, using default")
         return "You are a helpful AI assistant. Provide clear and accurate responses."
     except Exception as e:
         logger.error(f"Error loading system prompt: {e}")
@@ -61,41 +62,43 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager for startup and shutdown tasks."""
     # Startup
     logger.info("Starting LLM Workshop API...")
-    
+
     try:
         # Load configuration
         app_state["settings"] = get_settings()
-        
+
         # Load system prompt
         app_state["system_prompt"] = load_system_prompt()
-        
+
         # Initialize LLM client
         try:
             app_state["llm_client"] = LLMClient(
-                app_state["settings"], 
+                app_state["settings"],
                 app_state["system_prompt"]
             )
-            
+
             # Test the connection
             provider_info = app_state["llm_client"].get_provider_info()
-            logger.info(f"✅ LLM client initialized: {provider_info['provider']} provider using model {provider_info['model']}")
+            logger.info(
+                f"✅ LLM client initialized: {provider_info['provider']} provider using model {provider_info['model']}")
             app_state["is_healthy"] = True
-            
+
         except Exception as e:
             logger.error(f"❌ Failed to initialize LLM client: {e}")
-            logger.warning("API will start in degraded mode - chat endpoints will return 503")
+            logger.warning(
+                "API will start in degraded mode - chat endpoints will return 503")
             app_state["llm_client"] = None
             app_state["is_healthy"] = False
-        
+
         # Store state in app for access in routes
         app.state.app_state = app_state
-        
+
     except Exception as e:
         logger.error(f"Failed to load configuration: {e}")
         raise
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down LLM Workshop API...")
 
@@ -107,7 +110,7 @@ app = FastAPI(
     A minimal FastAPI application for workshop demonstrations of LLM integration.
     
     This API provides a simple chat interface that works with both:
-    - **Ollama** (local models like Phi3)
+    - **Ollama** (local models like phi4-mini)
     - **Azure OpenAI** (cloud models like GPT-4)
     
     ## Features
@@ -151,7 +154,6 @@ async def root():
         "docs": "/docs",
         "health": "/healthz"
     }
-
 
 
 @app.get(
