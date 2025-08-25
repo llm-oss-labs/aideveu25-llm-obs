@@ -11,7 +11,8 @@ RUN pip install --no-cache-dir "poetry==$POETRY_VERSION" \
 
 COPY pyproject.toml poetry.lock* ./
 RUN poetry lock --no-update \
-    && poetry install --no-root --no-ansi
+    && poetry install --with pii --no-root --no-ansi \
+    && python -m spacy download en_core_web_lg
 
 COPY apps/api ./apps/api
 
