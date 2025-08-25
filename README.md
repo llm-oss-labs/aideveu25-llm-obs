@@ -14,10 +14,10 @@ This repository includes a comprehensive hands-on workshop series:
 **📖 [Complete Workshop Guide](labs/README.md)**
 
 ### Lab Series:
-1. **[Lab 1: Baseline Setup](labs/LAB_01_BASELINE.md)** (30 min) - Set up LLM application without observability
-2. **[Lab 2: Basic Observability](labs/LAB_02_BASIC_OBSERVABILITY.md)** (45 min) - Add OpenLIT & OpenTelemetry  
-3. **[Lab 3: Full Observability Stack](labs/LAB_03_FULL_OBSERVABILITY.md)** (45 min) - Complete with Grafana, Prometheus, Tempo
-4. **[Lab 4: Privacy-Conscious Observability](labs/LAB_04_PRIVACY_OBSERVABILITY.md)** (30 min) - Implement PII masking
+1. **[Lab 1: Baseline Setup](labs/LAB_01_BASELINE.md)** (10 min) - Set up LLM application without observability
+2. **[Lab 2: Basic Observability](labs/LAB_02_BASIC_OBSERVABILITY.md)** (15 min) - Add OpenLIT & OpenTelemetry  
+3. **[Lab 3: Full Observability Stack](labs/LAB_03_FULL_OBSERVABILITY.md)** (15 min) - Complete with Grafana, Prometheus, Tempo
+4. **[Lab 4: Privacy-Conscious Observability](labs/LAB_04_PRIVACY_OBSERVABILITY.md)** (10 min) - Implement PII masking
 
 ## ✨ What You'll Use
 
@@ -32,6 +32,29 @@ This project provides a complete environment to explore privacy-conscious LLM ob
   - **Grafana**: Pre-configured dashboards for LLM-specific metrics
 - **🐳 Containerized Services**: The entire stack runs in Docker, managed with Docker Compose
 - **Simplified Workflow**: A `Makefile` provides simple commands for all common actions
+
+---
+
+## System Requirements
+
+### For GitHub Codespaces (Recommended)
+- GitHub account with Codespaces access
+- Modern web browser
+- **No local setup required** - everything runs in the cloud!
+
+### For Local Development
+- **Docker Desktop** with at least:
+  - 8GB RAM allocated to Docker
+  - 10GB free disk space
+  - Docker Compose v2.0+
+- **Git** for repository management
+- **Make** utility (included on Linux/macOS, install via tools on Windows)
+- **VS Code** with Dev Containers extension (optional but recommended)
+
+### LLM Provider Requirements
+Choose **one** of the following:
+- **Ollama (Local)**: Automatically available in Codespaces, or [install locally](https://ollama.ai/)
+- **Azure OpenAI**: Valid API key and endpoint from Azure portal
 
 ---
 
@@ -284,6 +307,31 @@ user_message = PIIMasker.get_instance().mask(request.user_message)
 - **Ollama in Codespaces**: The first chat may be slow if the model (`phi4-mini`) needs to be downloaded.
 - **Ports Not Opening**: If ports 8000 (API) or 3000 (Grafana) aren't forwarded in Codespaces, open them manually from the **Ports** tab.
 - **Stuck Containers**: If something seems wrong, run `make docker-reset` to completely reset the environment.
+- **Docker Build Issues**: If services fail to build, try `make docker-rebuild-nocache` to force a clean rebuild.
+
+- **Provider Connection Failed**: Verify your Azure API keys or Ollama service status using the health check endpoint.
+
+## 📚 Glossary
+
+**OpenTelemetry (OTEL)**: An open-source observability framework for collecting, processing, and exporting telemetry data (traces, metrics, logs).
+
+**OpenLIT**: An open-source LLM observability tool that provides automatic instrumentation for LLM applications using OpenTelemetry.
+
+**OTLP**: OpenTelemetry Protocol - the standardized protocol for transmitting telemetry data between applications and observability backends.
+
+**Traces**: Detailed records of individual requests as they flow through distributed systems, showing timing and dependencies.
+
+**Metrics**: Numerical measurements that provide insights into system performance, resource usage, and business KPIs over time.
+
+**Grafana**: Open-source visualization and analytics platform for monitoring and observability dashboards.
+
+**Prometheus**: Open-source time-series database and monitoring system, commonly used for storing metrics data.
+
+**Tempo**: Grafana's open-source distributed tracing backend for storing and querying trace data.
+
+**PII (Personally Identifiable Information)**: Any data that can be used to identify a specific individual, requiring special handling for privacy compliance.
+
+**Presidio**: Microsoft's open-source data protection toolkit for detecting and anonymizing PII in text and structured data.
 
 ---
 

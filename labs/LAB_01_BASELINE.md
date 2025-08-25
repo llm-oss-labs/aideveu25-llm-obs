@@ -108,8 +108,9 @@ make lab1
 This command will:
 - Remove all observability components (OpenLIT, OTEL Collector, Grafana, etc.)
 - Reset API code to baseline (no instrumentation)
-- Update dependencies to minimal set
+- Update dependencies to minimal required set
 - Configure Docker Compose for basic services only
+- Copy clean template files from `labs/templates/lab1/`
 
 **🔍 Verify the Switch:**
 ```bash
@@ -278,7 +279,32 @@ make docker-logs | grep -i error
 - [ ] API documentation accessible via port forwarding (Codespaces) or localhost
 - [ ] You understand the baseline architecture without observability
 
-## 📚 Key Takeaways
+## �️ Troubleshooting
+
+### Common Issues
+
+**🚨 Provider Connection Failed**
+```bash
+# Check if your chosen provider is accessible
+curl -s http://localhost:8000/healthz | jq .
+```
+- **Ollama**: Ensure Ollama is running and `phi4-mini` model is downloaded
+- **Azure**: Verify API key, endpoint, and model name in `.env` file
+
+**🚨 Ports Not Accessible**
+- **Codespaces**: Check the **Ports** tab and ensure port 8000 is forwarded
+- **Local**: Verify Docker containers are running with `make docker-ps`
+
+**🚨 CLI Not Responding**
+```bash
+# Restart the CLI container
+make docker-down
+make docker-up
+make docker-cli
+```
+
+
+## �📚 Key Takeaways
 1. **Baseline Established**: Clean LLM application without any observability instrumentation
 2. **Provider Flexibility**: Unified interface supports both Ollama and Azure OpenAI
 3. **Session-Based Chat**: Conversations maintain context across interactions

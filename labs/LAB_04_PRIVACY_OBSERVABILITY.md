@@ -61,11 +61,14 @@ make docker-down
 make lab4
 ```
 
-**🔍 What This Adds:**
-- **Presidio Dependencies**: PII analyzer and anonymizer
-- **PIIMasker Class**: Intelligent PII detection and masking
-- **Integration**: Automatic masking in inference pipeline
-- **Docker Updates**: SpaCy model downloads for NLP
+**⏱️ Note about Setup Time:**
+This step includes downloading and installing the SpaCy language model (`en_core_web_sm`), which can take 2-3 minutes on first run. The Docker build process will handle this automatically.
+
+**🔍 What This Configuration Includes:**
+- **Presidio Dependencies**: PII analyzer and anonymizer libraries
+- **PIIMasker Class**: Intelligent PII detection and masking utility
+- **Pipeline Integration**: Automatic masking in inference endpoint
+- **Enhanced Docker Setup**: SpaCy model downloads for NLP processing
 
 ### Step 3: Examine the PII Protection Implementation
 
@@ -154,8 +157,8 @@ curl -s "http://localhost:3200/api/search?limit=5" | jq -r '.traces[].traceID' |
 
 
 **🔍 What to Look For:**
-- **BEFORE Lab 4 patch**: You should see raw PII like "john.smith@example.com", "123 Main Street", etc.
-- **AFTER Lab 4 patch**: You should see masked values like "{{EMAIL}}", "{{NAME}}", "987-65-****"
+- **BEFORE Lab 4 make 4**: You should see raw PII like "john.smith@example.com", "123 Main Street", etc.
+- **AFTER Lab 4 make 4**: You should see masked values like "{{EMAIL}}", "{{NAME}}", "987-65-****"
 
 **🔍 Expected Results:**
 - Prompts should show `{{EMAIL}}`, `{{NAME}}`, `{{PHONE}}` instead of actual values
