@@ -142,12 +142,12 @@ make docker-down
 make lab3
 ```
 
-**🔍 What This Switch Adds:**
+**🔍 What This Configuration Includes:**
 - **Grafana**: Visualization and dashboards
 - **Prometheus**: Metrics storage and querying
 - **Tempo**: Distributed trace storage
-- **Updated OTel Collector**: Routes data to storage backends (Prometheus & Tempo)
-- **Pre-built Dashboard**: LLM-specific visualizations
+- **Enhanced OTel Collector**: Routes data to storage backends (Prometheus & Tempo)
+- **Pre-built Dashboard**: LLM-specific visualizations and provisioning
 
 **Verify the Switch:**
 ```bash
@@ -266,6 +266,61 @@ echo "3. Create errors (stop/start services)"
 echo "4. Vary request frequency"
 ```
 
+
+## 🛠️ Troubleshooting
+
+### Service Readiness Checks
+
+**🔍 Verify All Services Are Running**
+```bash
+# Check all containers are healthy
+make docker-ps
+# Expected: llm-workshop-api, llm-workshop-cli, otelcol, grafana, prometheus, tempo
+```
+
+**🔍 Test Service Connectivity**
+```bash
+# Test Grafana
+curl -s http://localhost:3000/api/health | jq .
+# Test Prometheus
+curl -s http://localhost:9090/api/v1/status/config | jq .status
+# Test API health
+curl -s http://localhost:8000/healthz | jq .
+```
+
+**🔍 Verify Dashboard Loading**
+```bash
+# Check if dashboards were provisioned
+docker exec grafana ls -la /etc/grafana/provisioning/dashboards/
+```
+
+### Common Issues
+
+**🚨 Grafana Dashboard Not Loading**
+- Check if provisioning worked: `docker logs grafana | grep -i provision`
+- Verify dashboard file exists: `docker exec grafana cat /etc/grafana/provisioning/dashboards/dashboards.yaml`
+- Try manually refreshing the dashboard in Grafana UI
+
+**🚨 No Data in Dashboards**
+```bash
+# Verify Prometheus is receiving metrics
+curl -s "http://localhost:9090/api/v1/query?query=up" | jq .
+# Check if tempo is receiving traces
+docker logs tempo | grep -i "received"
+```
+
+**🚨 Port Access Issues**
+- **Codespaces**: Ensure ports 3000, 9090, 3200 are forwarded in the Ports tab
+- **Local**: Check firewall settings and Docker port binding
+
+**🚨 Service Startup Order Issues**
+```bash
+# If services fail to connect, restart in order
+make docker-down
+sleep 5
+make docker-up
+# Wait for each service to fully start before testing
+```
 
 ## 🎯 Success Criteria
 - [ ] All services start successfully

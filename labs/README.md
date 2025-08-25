@@ -21,12 +21,51 @@ By the end of this workshop, you will:
 ## 📚 Lab Structure
 
 ### Progressive Learning Path
-| Lab | Title | Duration | Patch | Key Learning |
-|-----|-------|----------|-------|--------------|
-| [Lab 1](LAB_01_BASELINE.md) | Baseline Setup | 10 min | `labs/patches/lab1-reset-to-baseline.patch` | LLM app fundamentals |
-| [Lab 2](LAB_02_BASIC_OBSERVABILITY.md) | Basic Observability with OpenLIT | 15 min | `labs/patches/lab2-add-basic-observability.patch` | OpenLIT + OpenTelemetry |
-| [Lab 3](LAB_03_FULL_OBSERVABILITY.md) | Full Observability Stack | 15 min | `labs/patches/lab3-add-full-observability-stack.patch` | Grafana + Prometheus + Tempo |
-| [Lab 4](LAB_04_PRIVACY_OBSERVABILITY.md) | Privacy-Conscious Observability | 10 min | `labs/patches/lab4-add-privacy-protection.patch` | PII masking with Presidio |
+| Lab | Title | Duration | Configuration | Key Learning |
+|-----|-------|----------|---------------|--------------|
+| [Lab 1](LAB_01_BASELINE.md) | Baseline Setup | 10 min | `make lab1` | LLM app fundamentals |
+| [Lab 2](LAB_02_BASIC_OBSERVABILITY.md) | Basic Observability with OpenLIT | 15 min | `make lab2` | OpenLIT + OpenTelemetry |
+| [Lab 3](LAB_03_FULL_OBSERVABILITY.md) | Full Observability Stack | 15 min | `make lab3` | Grafana + Prometheus + Tempo |
+| [Lab 4](LAB_04_PRIVACY_OBSERVABILITY.md) | Privacy-Conscious Observability | 10 min | `make lab4` | PII masking with Presidio |
+
+**Total Duration**: ~60 minutes
+
+### How Lab Management Works
+
+The workshop uses a **template-based system** to manage different configurations:
+
+- **`make lab1`**: Resets to baseline application (no observability)
+- **`make lab2`**: Switches to Lab 2 configuration (adds OpenLIT + OTEL Collector)  
+- **`make lab3`**: Switches to Lab 3 configuration (adds Grafana, Prometheus, Tempo)
+- **`make lab4`**: Switches to Lab 4 configuration (adds PII masking with Presidio)
+
+Each `make labX` command:
+1. **Builds incrementally** from the previous lab (lab2→lab1, lab3→lab2, lab4→lab3)
+2. **Copies template files** from `labs/templates/labX/` to override/add to current configuration
+3. **Updates configuration files** (`main.py`, `pyproject.toml`, `docker-compose.yml`, etc.)
+4. **Creates necessary directories** and configurations for that lab's specific features
+
+> **📝 Lab Progression**: 
+> - `make lab1` runs `clean` first, then sets up baseline
+> - `make lab2` runs `lab1` first, then adds observability components
+> - `make lab3` runs `lab2` first, then adds visualization stack
+> - `make lab4` runs `lab3` first, then adds PII masking
+>
+> This ensures each lab includes all previous features plus new ones.
+
+**Key Files Managed:**
+- `apps/api/main.py` - Application entry point (OpenLIT integration)
+- `apps/api/routers/inference.py` - Chat endpoint (PII masking)
+- `pyproject.toml` - Python dependencies
+- `docker-compose.yml` - Service configuration
+- `apps/otel_col/` - OpenTelemetry Collector configuration
+- `apps/grafana/` - Grafana dashboards and provisioning
+- `apps/api/utils/pii_masker.py` - PII masking utility
+
+**Check your current status** anytime with: `make status`
+
+> **💡 Behind the Scenes**: The lab configurations are stored as complete template files in `labs/templates/lab1/`, `labs/templates/lab2/`, etc. When you run `make lab2`, it copies these pre-configured templates to your working directory, ensuring a consistent and predictable setup for each lab.
+
 
 ### What You'll Build
 ```
@@ -101,21 +140,6 @@ make docker-cli
 - **Grafana Dashboard**: http://localhost:3000
 - **Prometheus**: http://localhost:9090
 - **Tempo**: http://localhost:3200
-
-### Patch Management
-```bash
-# Apply patches in sequence
-git apply labs/patches/lab1-reset-to-baseline.patch
-git apply labs/patches/lab2-add-basic-observability.patch
-git apply labs/patches/lab3-add-full-observability-stack.patch
-git apply labs/patches/lab4-add-privacy-protection.patch
-
-# Check what would change
-git apply --stat labs/patches/lab2-add-basic-observability.patch
-
-# Verify patch can be applied
-git apply --check labs/patches/lab3-add-full-observability-stack.patch
-```
 
 ## 📊 Monitoring Dashboard
 

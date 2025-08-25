@@ -106,11 +106,11 @@ make docker-down
 make lab2
 ```
 
-**🔍 What This Switch Adds:**
-- OpenLIT SDK to `pyproject.toml`
-- OpenLIT instrumentation in `apps/api/main.py`
+**🔍 What This Configuration Includes:**
+- OpenLIT SDK added to `pyproject.toml`
+- OpenLIT instrumentation integrated in `apps/api/main.py`
 - OpenTelemetry Collector service with debug configuration
-- Basic OTEL environment variables
+- Basic OTEL environment variables in Docker setup
 
 **Verify the Switch:**
 ```bash
@@ -119,7 +119,7 @@ make status
 ```
 
 You should see:
-```
+```console
 📊 Current lab configuration:
    OpenLIT: ✅ Enabled
    PII Masking: ❌ Disabled
@@ -130,7 +130,7 @@ You should see:
 
 #### OpenLIT Integration
 
-**What the patch adds to `apps/api/main.py`:**
+**What the make lab2 adds to `apps/api/main.py`:**
 ```python
 import openlit
 openlit.init(capture_message_content=True)
@@ -195,7 +195,7 @@ make docker-cli
 
 Once in the CLI, start a conversation to generate telemetry:
 
-```
+```console
 Type your message and press Enter. Ctrl+C to cancel a request, Ctrl+D to quit.
 
 You: Hello, how are you?
@@ -216,7 +216,7 @@ docker logs otelcol | grep -A 50 "ResourceSpans"
 ```
 
 **🔍 Trace Data Structure:**
-```
+```yaml
 ResourceSpans #0
 Resource SchemaURL: 
 Resource attributes:
@@ -360,6 +360,78 @@ While these commands help you explore your telemetry data, searching through raw
 - Analyze trends over time
 
 **In Lab 3, we'll add Grafana, Prometheus, and Tempo to provide powerful visualization and analysis capabilities for your telemetry data.**
+
+## 🛠️ Troubleshooting
+
+### Telemetry Validation
+
+**🔍 Verify OpenLIT is Capturing Data**
+```bash
+# Check if telemetry is being generated
+docker logs otelcol | grep "ResourceSpans\|ResourceMetrics" | wc -l
+# Should show increasing numbers as you send more messages
+```
+
+**🔍 Validate OTEL Collector is Running**
+```bash
+# Check collector status
+docker ps | grep otelcol
+# Verify collector logs show successful startup
+docker logs otelcol | head -20
+```
+
+**🔍 Check Telemetry Data Flow**
+```bash
+# Find your most recent trace
+docker logs otelcol | grep "Trace ID" | tail -3
+# Look for LLM-specific attributes
+docker logs otelcol | grep "gen_ai\." | tail -10
+```
+
+### 🛠️ Troubleshooting
+
+**🔍 Verify Lab Configuration**
+```bash
+# Confirm you're on Lab 2
+make status
+# Should show: OpenLIT: ✅ Enabled, OTEL Collector: ✅ Configured
+```
+
+**🚨 No Telemetry Data Appearing**
+```bash
+# Verify OpenLIT initialization in API logs
+docker logs llm-workshop-api | grep -i openlit
+
+# Check OTEL environment variables
+docker exec llm-workshop-api env | grep OTEL
+
+# Ensure collector is receiving data
+docker logs otelcol | grep -i "received"
+```
+
+**🚨 Lab Switch Issues**
+```bash
+# If lab switch failed, try manual cleanup
+make clean
+docker-compose down -v
+make lab2
+make docker-up
+```
+
+**🚨 OTEL Collector Not Starting**
+```bash
+# Check collector configuration
+docker logs otelcol | grep -i error
+# Verify the configuration file exists
+ls -la apps/otel_col/otel_config.yaml
+```
+
+**🚨 Connection Refused to OTEL Collector**
+```bash
+# Verify collector ports are accessible
+docker port otelcol
+# Should show: 4317/tcp, 4318/tcp
+```
 
 **🎯 What You've Accomplished:**
 - ✅ **Automatic instrumentation** with just 2 lines of code
