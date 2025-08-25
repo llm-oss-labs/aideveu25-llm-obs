@@ -11,6 +11,121 @@ Transform your telemetry pipeline into a production-ready observability stack by
 - Grafana dashboard visualization
 - LLM-specific performance monitoring
 
+## 🏗️ Full Observability Stack Architecture
+```mermaid
+flowchart TB
+    subgraph UI["🖥️ User Interface"]
+        CLI["CLI Client<br/>Interactive Chat"]
+    end
+
+    subgraph APP["🚀 Application Layer"]
+        API["FastAPI Server<br/>Port: 8000<br/>REST API"]
+        ROUTER["Chat Router<br/>/v1/chat endpoint<br/>Request Processing"]
+        CLIENT["LLM Client Service<br/>Session Management<br/>Provider Abstraction"]
+        OPENLIT["📊 OpenLIT SDK<br/>Auto-Instrumentation<br/>Captures LLM Telemetry"]
+    end
+
+    subgraph PROVIDERS["🤖 LLM Providers"]
+        OLLAMA["Ollama<br/>Port: 11434<br/>phi3 model<br/>Local"]
+        AZURE["Azure OpenAI<br/>gpt-4o-mini<br/>Cloud API"]
+    end
+
+    subgraph COLLECTOR["📈 Telemetry Collection"]
+        OTELCOL["OpenTelemetry Collector<br/>Port: 4317/4318<br/>OTLP Receiver<br/>Routes to Storage"]
+    end
+
+    subgraph STORAGE["💾 Telemetry Storage"]
+        TEMPO["🔍 Tempo<br/>Port: 3200<br/>Trace Storage<br/>Distributed Tracing"]
+        PROMETHEUS["📊 Prometheus<br/>Port: 9090<br/>Metrics Storage<br/>Time Series DB"]
+    end
+
+    subgraph VIZ["📊 Visualization & Analysis"]
+        GRAFANA["📈 Grafana<br/>Port: 3000<br/>Dashboards & Explore<br/>Data Source Integration"]
+    end
+
+    subgraph SESSION["💾 Session Storage"]
+        MEMORY["In-Memory Store<br/>Conversation History<br/>Max 20 messages"]
+    end
+
+    subgraph CONFIG["⚙️ Configuration"]
+        ENV[".env File<br/>Provider Selection<br/>API Keys<br/>OTEL Endpoint"]
+    end
+
+    %% Request Flow
+    CLI -->|HTTP POST<br/>Chat Request| API
+    API --> ROUTER
+    ROUTER --> CLIENT
+    CLIENT --> SESSION
+
+    %% Provider Selection
+    CLIENT -->|Provider: ollama| OLLAMA
+    CLIENT -->|Provider: azure| AZURE
+
+    %% OpenLIT Instrumentation
+    OPENLIT -.->|Auto-Instruments| API
+    OPENLIT -.->|Auto-Instruments| CLIENT
+    OPENLIT -.->|Captures LLM Calls| OLLAMA
+    OPENLIT -.->|Captures LLM Calls| AZURE
+
+    %% Telemetry Flow to Collector
+    OPENLIT -->|Traces & Metrics<br/>OTLP/gRPC<br/>Port: 4317| OTELCOL
+
+    %% Storage Routing
+    OTELCOL -->|Traces<br/>OTLP| TEMPO
+    OTELCOL -->|Metrics<br/>Prometheus Format| PROMETHEUS
+
+    %% Visualization Integration
+    GRAFANA -->|Query Traces<br/>TraceQL/HTTP API| TEMPO
+    GRAFANA -->|Query Metrics<br/>PromQL/HTTP API| PROMETHEUS
+
+    %% Configuration
+    ENV -.->|Configures<br/>Provider & Model| CLIENT
+    ENV -.->|OTEL Endpoint<br/>Configuration| OPENLIT
+
+    %% Response Flow (dashed)
+    OLLAMA -.->|LLM Response<br/>📊 Instrumented| CLIENT
+    AZURE -.->|LLM Response<br/>📊 Instrumented| CLIENT
+    CLIENT -.->|JSON Response| ROUTER
+    ROUTER -.->|Chat Response| API
+    API -.->|HTTP Response| CLI
+
+    %% Enhanced Styling
+    classDef userInterface fill:#4A90E2,stroke:#2171b5,stroke-width:2px,color:#fff
+    classDef application fill:#28a745,stroke:#1e7e34,stroke-width:2px,color:#fff
+    classDef providers fill:#fd7e14,stroke:#e55100,stroke-width:2px,color:#fff
+    classDef collector fill:#dc3545,stroke:#b02a37,stroke-width:2px,color:#fff
+    classDef storage fill:#6610f2,stroke:#520dc2,stroke-width:2px,color:#fff
+    classDef visualization fill:#e83e8c,stroke:#d91a72,stroke-width:2px,color:#fff
+    classDef config fill:#6f42c1,stroke:#5a2d91,stroke-width:2px,color:#fff
+    classDef session fill:#20c997,stroke:#0f5132,stroke-width:2px,color:#fff
+    classDef observability fill:#17a2b8,stroke:#0c5460,stroke-width:2px,color:#fff
+
+    class CLI userInterface
+    class API,ROUTER,CLIENT application
+    class OPENLIT observability
+    class OLLAMA,AZURE providers
+    class OTELCOL collector
+    class TEMPO,PROMETHEUS storage
+    class GRAFANA visualization
+    class ENV config
+    class MEMORY session
+```
+
+**🔍 What This Lab Adds:**
+- **🔍 Tempo**: Distributed trace storage for detailed request flow analysis
+- **📊 Prometheus**: Time-series metrics storage for performance and usage trends  
+- **📈 Grafana**: Unified visualization with pre-built LLM observability dashboards
+- **🔄 Complete Pipeline**: Telemetry collection → storage → visualization
+- **📊 Real-time Monitoring**: Live dashboards updating as you use the application
+- **🔍 Deep Insights**: Correlate high-level metrics with detailed trace analysis
+
+**🔄 Enhanced Telemetry Flow:**
+1. OpenLIT captures LLM telemetry (same as Lab 2)
+2. **NEW**: OTel Collector routes traces to Tempo and metrics to Prometheus
+3. **NEW**: Grafana provides unified access to both data sources
+4. **NEW**: Pre-built dashboards show LLM-specific metrics and traces
+5. **NEW**: Interactive exploration through Grafana Explore interface
+
 ## 📋 Prerequisites
 - Completed Lab 2 (Basic Observability with OpenLIT)
 - Understanding of telemetry data structure from debug output
