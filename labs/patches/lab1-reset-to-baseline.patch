@@ -1,0 +1,1873 @@
+diff --git a/apps/api/Dockerfile b/apps/api/Dockerfile
+index 44c742e..092b203 100644
+--- a/apps/api/Dockerfile
++++ b/apps/api/Dockerfile
+@@ -11,8 +11,7 @@ RUN pip install --no-cache-dir "poetry==$POETRY_VERSION" \
+ 
+ COPY pyproject.toml poetry.lock* ./
+ RUN poetry lock --no-update \
+-    && poetry install --with pii --no-root --no-ansi \
+-    && python -m spacy download en_core_web_lg
++    && poetry install --no-root --no-ansi
+ 
+ COPY apps/api ./apps/api
+ 
+diff --git a/apps/api/main.py b/apps/api/main.py
+index 1a76a1c..3ae7ab1 100644
+--- a/apps/api/main.py
++++ b/apps/api/main.py
+@@ -17,7 +17,6 @@ from .services.llm_client import LLMClient
+ from .routers import inference
+ from .schemas.response import HealthResponse
+ 
+-import openlit
+ 
+ # Load environment variables
+ load_dotenv()
+@@ -37,8 +36,6 @@ app_state = {
+     "is_healthy": False
+ }
+ 
+-openlit.init(capture_message_content=True)
+-
+ 
+ def load_system_prompt() -> str:
+     """Load system prompt from config file."""
+@@ -49,7 +46,8 @@ def load_system_prompt() -> str:
+         logger.info(f"Loaded system prompt from {config_path}")
+         return prompt
+     except FileNotFoundError:
+-        logger.warning(f"System prompt file not found at {config_path}, using default")
++        logger.warning(
++            f"System prompt file not found at {config_path}, using default")
+         return "You are a helpful AI assistant. Provide clear and accurate responses."
+     except Exception as e:
+         logger.error(f"Error loading system prompt: {e}")
+@@ -61,41 +59,43 @@ async def lifespan(app: FastAPI):
+     """Application lifespan manager for startup and shutdown tasks."""
+     # Startup
+     logger.info("Starting LLM Workshop API...")
+-    
++
+     try:
+         # Load configuration
+         app_state["settings"] = get_settings()
+-        
++
+         # Load system prompt
+         app_state["system_prompt"] = load_system_prompt()
+-        
++
+         # Initialize LLM client
+         try:
+             app_state["llm_client"] = LLMClient(
+-                app_state["settings"], 
++                app_state["settings"],
+                 app_state["system_prompt"]
+             )
+-            
++
+             # Test the connection
+             provider_info = app_state["llm_client"].get_provider_info()
+-            logger.info(f"✅ LLM client initialized: {provider_info['provider']} provider using model {provider_info['model']}")
++            logger.info(
++                f"✅ LLM client initialized: {provider_info['provider']} provider using model {provider_info['model']}")
+             app_state["is_healthy"] = True
+-            
++
+         except Exception as e:
+             logger.error(f"❌ Failed to initialize LLM client: {e}")
+-            logger.warning("API will start in degraded mode - chat endpoints will return 503")
++            logger.warning(
++                "API will start in degraded mode - chat endpoints will return 503")
+             app_state["llm_client"] = None
+             app_state["is_healthy"] = False
+-        
++
+         # Store state in app for access in routes
+         app.state.app_state = app_state
+-        
++
+     except Exception as e:
+         logger.error(f"Failed to load configuration: {e}")
+         raise
+-    
++
+     yield
+-    
++
+     # Shutdown
+     logger.info("Shutting down LLM Workshop API...")
+ 
+@@ -153,7 +153,6 @@ async def root():
+     }
+ 
+ 
+-
+ @app.get(
+     "/healthz",
+     response_model=HealthResponse,
+diff --git a/apps/api/routers/inference.py b/apps/api/routers/inference.py
+index ec5f351..954afbe 100644
+--- a/apps/api/routers/inference.py
++++ b/apps/api/routers/inference.py
+@@ -6,7 +6,6 @@ from typing import Dict, List
+ from fastapi import APIRouter, HTTPException, Request
+ from apps.api.schemas.request import ChatRequest
+ from apps.api.schemas.response import ChatResponse
+-from apps.api.utils.pii_masker import PIIMasker
+ 
+ logger = logging.getLogger(__name__)
+ 
+@@ -20,11 +19,11 @@ sessions: Dict[str, List[Dict[str, str]]] = {}
+ async def chat(request: ChatRequest, app_request: Request):
+     """
+     Process chat requests.
+-    
++
+     Args:
+         request: ChatRequest with session_id and user_message
+         app_request: FastAPI Request to access app state
+-        
++
+     Returns:
+         ChatResponse with session_id and reply
+     """
+@@ -32,7 +31,7 @@ async def chat(request: ChatRequest, app_request: Request):
+     app_state = app_request.app.state.app_state
+     llm_client = app_state.get("llm_client")
+     settings = app_state.get("settings")
+-    
++
+     # Check if LLM client is available
+     if not llm_client:
+         logger.error("Chat request received but LLM client is not available")
+@@ -40,57 +39,49 @@ async def chat(request: ChatRequest, app_request: Request):
+             status_code=503,
+             detail="LLM service unavailable. Please check your configuration."
+         )
+-    # Mask PII in user message before processing    
+     user_message = request.user_message
+ 
+-    try:
+-        pii_masking_enabled = True if settings is None else getattr(settings, "pii_masking_enabled", True)
+-        if pii_masking_enabled:
+-            user_message = PIIMasker.get_instance().mask(user_message)
+-    except Exception as e:
+-        logger.warning(f"PII masking failed, proceeding with original message: {e}")
+-    
+     try:
+         # Get or create session
+         if request.session_id not in sessions:
+             sessions[request.session_id] = []
+             logger.info(f"Created new session: {request.session_id}")
+-        
++
+         # Add user message to session
+         sessions[request.session_id].append({
+             "role": "user",
+             "content": user_message
+         })
+-        
++
+         logger.info(f"Processing chat for session {request.session_id}")
+-        
++
+         # Generate response using the client's chat method
+         reply = await llm_client.chat(
+             session_id=request.session_id,
+             user_message=user_message
+         )
+-        
++
+         # Add assistant response to session
+         sessions[request.session_id].append({
+             "role": "assistant",
+             "content": reply
+         })
+-        
++
+         # Return response
+         return ChatResponse(
+             session_id=request.session_id,
+             reply=reply
+         )
+-        
++
+     except HTTPException:
+         # Re-raise HTTP exceptions
+         raise
+     except Exception as e:
+         logger.error(f"Error processing chat request: {e}")
+-        
++
+         # Parse error and provide generic helpful messages
+         error_msg = str(e).lower()
+-        
++
+         if "connection" in error_msg or "refused" in error_msg:
+             detail = "Cannot connect to LLM service. Please check your configuration and ensure the service is running."
+         elif "unauthorized" in error_msg or "401" in error_msg or "403" in error_msg:
+@@ -103,5 +94,5 @@ async def chat(request: ChatRequest, app_request: Request):
+             detail = "Request timed out. The service might be overloaded."
+         else:
+             detail = f"Failed to process chat request: {str(e)}"
+-            
++
+         raise HTTPException(status_code=500, detail=detail)
+diff --git a/apps/api/utils/pii_masker.py b/apps/api/utils/pii_masker.py
+deleted file mode 100644
+index 31dfb96..0000000
+--- a/apps/api/utils/pii_masker.py
++++ /dev/null
+@@ -1,107 +0,0 @@
+-import threading
+-from typing import Dict, Optional
+-
+-from presidio_analyzer import AnalyzerEngine, RecognizerResult
+-from presidio_anonymizer import AnonymizerEngine
+-from presidio_anonymizer.entities import OperatorConfig
+-
+-
+-class PIIMasker:
+-    """
+-    Minimal Presidio wrapper to detect and mask PII in text.
+-
+-    Key Features:
+-    - Detects various PII entities (SSN, credit cards, emails, phones, etc.)
+-    - Uses context-aware filtering to reduce false positives
+-    - Handles common abbreviations (US, UK, CA, etc.) intelligently
+-    - Properly masks sensitive data with appropriate patterns
+-
+-    """
+-
+-    _instance: Optional["PIIMasker"] = None
+-    _lock = threading.Lock()
+-
+-    def __init__(self, language: str = "en", score_threshold: float = 0.5,
+-                 anonymizers: Optional[Dict[str, OperatorConfig]] = None):
+-        self.analyzer = AnalyzerEngine()
+-        self.anonymizer = AnonymizerEngine()
+-        self.language = language
+-        self.score_threshold = score_threshold
+-
+-        # Default anonymization policy: replace with entity placeholders
+-        if anonymizers is None:
+-            self.anonymizers = {
+-                "DEFAULT": OperatorConfig("replace", {"new_value": "{{PII}}"}),
+-                "PHONE_NUMBER": OperatorConfig("replace", {"new_value": "{{PHONE}}"}),
+-                "CREDIT_CARD": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 4, "from_end": True}),
+-                "EMAIL_ADDRESS": OperatorConfig("replace", {"new_value": "{{EMAIL}}"}),
+-                "PERSON": OperatorConfig("replace", {"new_value": "{{NAME}}"}),
+-                "IP_ADDRESS": OperatorConfig("replace", {"new_value": "{{IP}}"}),
+-                "IBAN_CODE": OperatorConfig("replace", {"new_value": "{{IBAN}}"}),
+-                "US_SSN": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 4, "from_end": True}),
+-                "US_ITIN": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 4, "from_end": True}),
+-                "US_PASSPORT": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 3, "from_end": True}),
+-                "US_DRIVER_LICENSE": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 4, "from_end": True}),
+-                # Handle common false positives for location entities
+-                "LOCATION": OperatorConfig("keep", {}),  # Keep location entities to avoid masking "US", "UK", etc.
+-            }
+-        else:
+-            self.anonymizers = anonymizers
+-
+-    @classmethod
+-    def get_instance(cls) -> "PIIMasker":
+-        if cls._instance is None:
+-            with cls._lock:
+-                if cls._instance is None:
+-                    cls._instance = PIIMasker()
+-        return cls._instance
+-
+-    def mask(self, text: str) -> str:
+-        if not text:
+-            return text
+-        try:
+-            results: list[RecognizerResult] = self.analyzer.analyze(
+-                text=text,
+-                language=self.language,
+-                score_threshold=self.score_threshold,
+-            )
+-        except Exception:
+-            return text
+-        if not results:
+-            return text
+-
+-        # Filter out common false positives for LOCATION entities
+-        # that are likely abbreviations in sensitive contexts
+-        filtered_results = []
+-        for r in results:
+-            if r.entity_type == "LOCATION":
+-                detected_text = text[r.start:r.end].upper()
+-                # Common country/state abbreviations that are often false positives
+-                # when appearing near sensitive data like SSN, credit cards, etc.
+-                common_abbreviations = {"US", "UK", "CA", "NY", "TX", "FL", "IL", "PA", "OH", "MI"}
+-                if detected_text in common_abbreviations and r.score < 0.9:
+-                    # Skip this entity if it's a common abbreviation with low confidence
+-                    continue
+-            filtered_results.append(r)
+-
+-        if not filtered_results:
+-            return text
+-
+-        # Build per-entity config map, fallback to DEFAULT
+-        operators: Dict[str, OperatorConfig] = {}
+-        for r in filtered_results:
+-            ent = r.entity_type
+-            if ent in self.anonymizers:
+-                operators[ent] = self.anonymizers[ent]
+-            else:
+-                operators[ent] = self.anonymizers.get("DEFAULT")
+-
+-        try:
+-            out = self.anonymizer.anonymize(
+-                text=text,
+-                analyzer_results=filtered_results,
+-                operators=operators,
+-            )
+-            return out.text
+-        except Exception:
+-            return text
+diff --git a/apps/grafana/dashboards/llm_observability.json b/apps/grafana/dashboards/llm_observability.json
+deleted file mode 100644
+index 2dfa979..0000000
+--- a/apps/grafana/dashboards/llm_observability.json
++++ /dev/null
+@@ -1,1224 +0,0 @@
+-{
+-    "annotations": {
+-        "list": [
+-            {
+-                "builtIn": 1,
+-                "datasource": {
+-                    "type": "grafana",
+-                    "uid": "-- Grafana --"
+-                },
+-                "enable": true,
+-                "hide": true,
+-                "iconColor": "rgba(0, 211, 255, 1)",
+-                "name": "Annotations & Alerts",
+-                "type": "dashboard"
+-            }
+-        ]
+-    },
+-    "editable": true,
+-    "fiscalYearStartMonth": 0,
+-    "graphTooltip": 1,
+-    "id": 1,
+-    "links": [
+-        {
+-            "asDropdown": false,
+-            "icon": "bolt",
+-            "includeVars": false,
+-            "keepTime": false,
+-            "tags": [],
+-            "targetBlank": true,
+-            "title": "OpenLIT Github",
+-            "tooltip": "Github",
+-            "type": "link",
+-            "url": "https://github.com/openlit/openlit"
+-        },
+-        {
+-            "asDropdown": false,
+-            "icon": "doc",
+-            "includeVars": false,
+-            "keepTime": false,
+-            "tags": [
+-                "AI"
+-            ],
+-            "targetBlank": true,
+-            "title": "OpenLIT Docs",
+-            "tooltip": "Documentation",
+-            "type": "link",
+-            "url": "https://docs.openlit.io/"
+-        }
+-    ],
+-    "panels": [
+-        {
+-            "fieldConfig": {
+-                "defaults": {},
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 6,
+-                "w": 10,
+-                "x": 0,
+-                "y": 0
+-            },
+-            "id": 21,
+-            "options": {
+-                "code": {
+-                    "language": "plaintext",
+-                    "showLineNumbers": false,
+-                    "showMiniMap": false
+-                },
+-                "content": "---\n# GenAI Observability\n\nThis dashboard displays the usage stats of LLMs, tracking OpenTelemetry Traces and Metrics sent using [OpenLIT](https://github.com/openlit/openlit).\n\n---",
+-                "mode": "markdown"
+-            },
+-            "pluginVersion": "12.1.1",
+-            "title": "",
+-            "transparent": true,
+-            "type": "text"
+-        },
+-        {
+-            "datasource": {
+-                "type": "prometheus",
+-                "uid": "${prometheus_datasource}"
+-            },
+-            "description": "This panel displays the LLM Request Rate",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "fixedColor": "blue",
+-                        "mode": "palette-classic-by-name"
+-                    },
+-                    "mappings": [],
+-                    "thresholds": {
+-                        "mode": "absolute",
+-                        "steps": [
+-                            {
+-                                "color": "red",
+-                                "value": 0
+-                            },
+-                            {
+-                                "color": "#EAB839",
+-                                "value": 10
+-                            },
+-                            {
+-                                "color": "#6ED0E0",
+-                                "value": 100
+-                            }
+-                        ]
+-                    },
+-                    "unit": "reqps"
+-                },
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 3,
+-                "w": 14,
+-                "x": 10,
+-                "y": 0
+-            },
+-            "id": 22,
+-            "options": {
+-                "colorMode": "background",
+-                "graphMode": "area",
+-                "justifyMode": "auto",
+-                "orientation": "auto",
+-                "percentChangeColorMode": "standard",
+-                "reduceOptions": {
+-                    "calcs": [
+-                        "lastNotNull"
+-                    ],
+-                    "fields": "",
+-                    "values": false
+-                },
+-                "showPercentChange": true,
+-                "textMode": "value_and_name",
+-                "wideLayout": true
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "disableTextWrap": false,
+-                    "editorMode": "code",
+-                    "expr": "sum(rate(gen_ai_requests_total{telemetry_sdk_name=\"openlit\"}[$__rate_interval]))",
+-                    "fullMetaSearch": false,
+-                    "includeNullMetadata": true,
+-                    "instant": false,
+-                    "legendFormat": "LLM Request Rate",
+-                    "range": true,
+-                    "refId": "A",
+-                    "useBackend": false
+-                }
+-            ],
+-            "title": "",
+-            "transparent": true,
+-            "type": "stat"
+-        },
+-        {
+-            "datasource": {
+-                "type": "prometheus",
+-                "uid": "${prometheus_datasource}"
+-            },
+-            "description": "This panel displays the cost incurred from using GenAI models. Note: OpenLIT applies estimated costs to all requests (including free local Ollama models) for tracking purposes. When using actual paid APIs like Azure OpenAI, these costs will reflect real charges.",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "fixedColor": "blue",
+-                        "mode": "shades"
+-                    },
+-                    "decimals": 6,
+-                    "mappings": [],
+-                    "thresholds": {
+-                        "mode": "absolute",
+-                        "steps": [
+-                            {
+-                                "color": "green",
+-                                "value": 0
+-                            },
+-                            {
+-                                "color": "red",
+-                                "value": 80
+-                            }
+-                        ]
+-                    },
+-                    "unit": "currencyUSD"
+-                },
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 4,
+-                "w": 14,
+-                "x": 10,
+-                "y": 3
+-            },
+-            "id": 2,
+-            "options": {
+-                "colorMode": "background",
+-                "graphMode": "area",
+-                "justifyMode": "auto",
+-                "orientation": "auto",
+-                "percentChangeColorMode": "standard",
+-                "reduceOptions": {
+-                    "calcs": [
+-                        "lastNotNull"
+-                    ],
+-                    "fields": "",
+-                    "values": false
+-                },
+-                "showPercentChange": true,
+-                "textMode": "auto",
+-                "wideLayout": true
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "expr": "sum(gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", deployment_environment=~\"$environment\", service_name=~\"$application\"}) / 100000 OR on() vector(0)",
+-                    "hide": false,
+-                    "legendFormat": "Total Usage Cost",
+-                    "range": true,
+-                    "refId": "A"
+-                }
+-            ],
+-            "title": "",
+-            "transparent": true,
+-            "type": "stat"
+-        },
+-        {
+-            "datasource": {
+-                "type": "prometheus",
+-                "uid": "${prometheus_datasource}"
+-            },
+-            "description": "This panel displays the total number of successful requests made to the GenAI system. A successful request is one that is completed without errors, indicating seamless operation and effective utilization of the GenAI service. Tracking this helps in understanding the reliability and performance of the GenAI system.",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "mode": "palette-classic-by-name"
+-                    },
+-                    "mappings": [],
+-                    "min": 0,
+-                    "thresholds": {
+-                        "mode": "absolute",
+-                        "steps": [
+-                            {
+-                                "color": "green",
+-                                "value": 0
+-                            },
+-                            {
+-                                "color": "red",
+-                                "value": 80
+-                            }
+-                        ]
+-                    },
+-                    "unit": "none"
+-                },
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 5,
+-                "w": 6,
+-                "x": 0,
+-                "y": 6
+-            },
+-            "id": 1,
+-            "options": {
+-                "colorMode": "background",
+-                "graphMode": "area",
+-                "justifyMode": "auto",
+-                "orientation": "auto",
+-                "percentChangeColorMode": "standard",
+-                "reduceOptions": {
+-                    "calcs": [
+-                        "lastNotNull"
+-                    ],
+-                    "fields": "",
+-                    "values": false
+-                },
+-                "showPercentChange": true,
+-                "textMode": "auto",
+-                "wideLayout": true
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "expr": "sum by() (gen_ai_requests_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
+-                    "hide": false,
+-                    "legendFormat": "Total Successful GenAI Requests",
+-                    "range": true,
+-                    "refId": "A"
+-                }
+-            ],
+-            "title": "",
+-            "transparent": true,
+-            "type": "stat"
+-        },
+-        {
+-            "datasource": {
+-                "type": "prometheus",
+-                "uid": "${prometheus_datasource}"
+-            },
+-            "description": "This panel displays the different AI models currently being used in the system based on what users are requesting. This shows the logical model usage patterns without the confusion of internal API version identifiers.",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "mode": "palette-classic"
+-                    },
+-                    "custom": {
+-                        "hideFrom": {
+-                            "legend": false,
+-                            "tooltip": false,
+-                            "viz": false
+-                        }
+-                    },
+-                    "mappings": [],
+-                    "unit": "short"
+-                },
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 5,
+-                "w": 4,
+-                "x": 6,
+-                "y": 6
+-            },
+-            "id": 24,
+-            "options": {
+-                "displayLabels": [
+-                    "name",
+-                    "value"
+-                ],
+-                "legend": {
+-                    "displayMode": "table",
+-                    "placement": "right",
+-                    "showLegend": true,
+-                    "values": [
+-                        "value"
+-                    ]
+-                },
+-                "pieType": "pie",
+-                "reduceOptions": {
+-                    "calcs": [
+-                        "lastNotNull"
+-                    ],
+-                    "fields": "",
+-                    "values": false
+-                },
+-                "tooltip": {
+-                    "hideZeros": false,
+-                    "mode": "single",
+-                    "sort": "none"
+-                }
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "expr": "sum by (gen_ai_request_model) (gen_ai_requests_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
+-                    "hide": false,
+-                    "legendFormat": "{{gen_ai_request_model}}",
+-                    "range": true,
+-                    "refId": "A"
+-                }
+-            ],
+-            "title": "Models in Use",
+-            "type": "piechart"
+-        },
+-        {
+-            "datasource": {
+-                "type": "prometheus",
+-                "uid": "${prometheus_datasource}"
+-            },
+-            "description": "This panel displays the total number of tokens consumed by GenAI requests, providing a direct measure of usage. Monitoring this helps in assessing the demand on GenAI services and guiding resource allocation or optimization strategies.",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "fixedColor": "purple",
+-                        "mode": "shades"
+-                    },
+-                    "mappings": [],
+-                    "thresholds": {
+-                        "mode": "absolute",
+-                        "steps": [
+-                            {
+-                                "color": "green",
+-                                "value": 0
+-                            },
+-                            {
+-                                "color": "red",
+-                                "value": 80
+-                            }
+-                        ]
+-                    },
+-                    "unit": "none"
+-                },
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 4,
+-                "w": 8,
+-                "x": 10,
+-                "y": 7
+-            },
+-            "id": 3,
+-            "options": {
+-                "colorMode": "background",
+-                "graphMode": "area",
+-                "justifyMode": "auto",
+-                "orientation": "auto",
+-                "percentChangeColorMode": "standard",
+-                "reduceOptions": {
+-                    "calcs": [
+-                        "lastNotNull"
+-                    ],
+-                    "fields": "",
+-                    "values": false
+-                },
+-                "showPercentChange": true,
+-                "textMode": "auto",
+-                "wideLayout": true
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "editorMode": "code",
+-                    "expr": "sum(gen_ai_client_token_usage_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
+-                    "hide": false,
+-                    "legendFormat": "Total Usage Tokens",
+-                    "range": true,
+-                    "refId": "A"
+-                }
+-            ],
+-            "title": "",
+-            "transparent": true,
+-            "type": "stat"
+-        },
+-        {
+-            "datasource": {
+-                "type": "prometheus",
+-                "uid": "${prometheus_datasource}"
+-            },
+-            "description": "This panel displays the average cost per use of the GenAI models and related services. It provides insights into the cost-effectiveness of interactions with GenAI, helping to identify trends in expense per operation. Monitoring this assists in optimizing budget allocation and improving cost efficiency in GenAI utilization.",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "fixedColor": "blue",
+-                        "mode": "shades"
+-                    },
+-                    "decimals": 6,
+-                    "mappings": [],
+-                    "thresholds": {
+-                        "mode": "absolute",
+-                        "steps": [
+-                            {
+-                                "color": "green",
+-                                "value": 0
+-                            },
+-                            {
+-                                "color": "#EAB839",
+-                                "value": 0.5
+-                            },
+-                            {
+-                                "color": "red",
+-                                "value": 1
+-                            }
+-                        ]
+-                    },
+-                    "unit": "currencyUSD"
+-                },
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 4,
+-                "w": 6,
+-                "x": 18,
+-                "y": 7
+-            },
+-            "id": 5,
+-            "options": {
+-                "colorMode": "background",
+-                "graphMode": "none",
+-                "justifyMode": "auto",
+-                "orientation": "auto",
+-                "percentChangeColorMode": "standard",
+-                "reduceOptions": {
+-                    "calcs": [
+-                        "lastNotNull"
+-                    ],
+-                    "fields": "",
+-                    "values": false
+-                },
+-                "showPercentChange": true,
+-                "textMode": "auto",
+-                "wideLayout": true
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "expr": "avg by() (gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"}) / 100000 OR on() vector(0)",
+-                    "hide": false,
+-                    "legendFormat": "Avg Usage Cost",
+-                    "range": true,
+-                    "refId": "A"
+-                }
+-            ],
+-            "title": "",
+-            "transparent": true,
+-            "type": "stat"
+-        },
+-        {
+-            "collapsed": false,
+-            "gridPos": {
+-                "h": 1,
+-                "w": 24,
+-                "x": 0,
+-                "y": 11
+-            },
+-            "id": 27,
+-            "panels": [],
+-            "title": "Performance Analysis",
+-            "type": "row"
+-        },
+-        {
+-            "datasource": {
+-                "type": "prometheus",
+-                "uid": "${prometheus_datasource}"
+-            },
+-            "description": "This panel displays the time to first token (TTFT) - a critical latency metric showing how quickly the LLM starts responding. Lower values indicate better perceived performance and user experience.",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "mode": "palette-classic"
+-                    },
+-                    "decimals": 3,
+-                    "mappings": [],
+-                    "thresholds": {
+-                        "mode": "absolute",
+-                        "steps": [
+-                            {
+-                                "color": "green",
+-                                "value": 0
+-                            },
+-                            {
+-                                "color": "yellow",
+-                                "value": 0.5
+-                            },
+-                            {
+-                                "color": "red",
+-                                "value": 2
+-                            }
+-                        ]
+-                    },
+-                    "unit": "s"
+-                },
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 5,
+-                "w": 12,
+-                "x": 0,
+-                "y": 12
+-            },
+-            "id": 16,
+-            "options": {
+-                "colorMode": "background",
+-                "graphMode": "area",
+-                "justifyMode": "auto",
+-                "orientation": "auto",
+-                "percentChangeColorMode": "standard",
+-                "reduceOptions": {
+-                    "calcs": [
+-                        "lastNotNull"
+-                    ],
+-                    "fields": "",
+-                    "values": false
+-                },
+-                "showPercentChange": false,
+-                "textMode": "auto",
+-                "wideLayout": true
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "expr": "gen_ai_server_time_to_first_token_seconds_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"} / gen_ai_server_time_to_first_token_seconds_count{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"}",
+-                    "hide": false,
+-                    "legendFormat": "Avg Time to First Token",
+-                    "range": true,
+-                    "refId": "A"
+-                }
+-            ],
+-            "title": "Time to First Token",
+-            "type": "stat"
+-        },
+-        {
+-            "datasource": {
+-                "type": "prometheus",
+-                "uid": "${prometheus_datasource}"
+-            },
+-            "description": "This panel displays the token generation throughput - how many tokens per second the LLM is producing. Higher values indicate better performance and efficiency in token generation.",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "mode": "palette-classic"
+-                    },
+-                    "decimals": 1,
+-                    "mappings": [],
+-                    "thresholds": {
+-                        "mode": "absolute",
+-                        "steps": [
+-                            {
+-                                "color": "red",
+-                                "value": 0
+-                            },
+-                            {
+-                                "color": "yellow",
+-                                "value": 10
+-                            },
+-                            {
+-                                "color": "green",
+-                                "value": 50
+-                            }
+-                        ]
+-                    },
+-                    "unit": "tokens/sec"
+-                },
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 5,
+-                "w": 12,
+-                "x": 12,
+-                "y": 12
+-            },
+-            "id": 13,
+-            "options": {
+-                "colorMode": "background",
+-                "graphMode": "area",
+-                "justifyMode": "auto",
+-                "orientation": "auto",
+-                "percentChangeColorMode": "standard",
+-                "reduceOptions": {
+-                    "calcs": [
+-                        "lastNotNull"
+-                    ],
+-                    "fields": "",
+-                    "values": false
+-                },
+-                "showPercentChange": false,
+-                "textMode": "auto",
+-                "wideLayout": true
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "expr": "gen_ai_usage_output_tokens_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"} / (gen_ai_client_operation_duration_seconds_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"} / gen_ai_client_operation_duration_seconds_count{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
+-                    "hide": false,
+-                    "legendFormat": "Tokens/Second",
+-                    "range": true,
+-                    "refId": "A"
+-                }
+-            ],
+-            "title": "Token Generation Rate",
+-            "type": "stat"
+-        },
+-        {
+-            "datasource": {
+-                "type": "prometheus",
+-                "uid": "${prometheus_datasource}"
+-            },
+-            "description": "This panel displays the request volume over time, showing how LLM usage patterns change throughout the day. This helps identify peak usage periods and track adoption trends.",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "mode": "palette-classic"
+-                    },
+-                    "custom": {
+-                        "axisBorderShow": false,
+-                        "axisCenteredZero": false,
+-                        "axisColorMode": "text",
+-                        "axisLabel": "",
+-                        "axisPlacement": "auto",
+-                        "barAlignment": 0,
+-                        "barWidthFactor": 0.6,
+-                        "drawStyle": "line",
+-                        "fillOpacity": 20,
+-                        "gradientMode": "none",
+-                        "hideFrom": {
+-                            "legend": false,
+-                            "tooltip": false,
+-                            "viz": false
+-                        },
+-                        "insertNulls": false,
+-                        "lineInterpolation": "smooth",
+-                        "lineWidth": 2,
+-                        "pointSize": 5,
+-                        "scaleDistribution": {
+-                            "type": "linear"
+-                        },
+-                        "showPoints": "auto",
+-                        "spanNulls": false,
+-                        "stacking": {
+-                            "group": "A",
+-                            "mode": "none"
+-                        },
+-                        "thresholdsStyle": {
+-                            "mode": "off"
+-                        }
+-                    },
+-                    "mappings": [],
+-                    "thresholds": {
+-                        "mode": "absolute",
+-                        "steps": [
+-                            {
+-                                "color": "green",
+-                                "value": 0
+-                            },
+-                            {
+-                                "color": "red",
+-                                "value": 80
+-                            }
+-                        ]
+-                    },
+-                    "unit": "reqps"
+-                },
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 8,
+-                "w": 24,
+-                "x": 0,
+-                "y": 17
+-            },
+-            "id": 17,
+-            "options": {
+-                "legend": {
+-                    "calcs": [],
+-                    "displayMode": "list",
+-                    "placement": "bottom",
+-                    "showLegend": true
+-                },
+-                "tooltip": {
+-                    "hideZeros": false,
+-                    "mode": "single",
+-                    "sort": "none"
+-                }
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "expr": "rate(gen_ai_requests_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"}[5m])",
+-                    "hide": false,
+-                    "legendFormat": "Request Rate",
+-                    "range": true,
+-                    "refId": "A"
+-                }
+-            ],
+-            "title": "Request Volume Over Time",
+-            "transparent": true,
+-            "type": "timeseries"
+-        },
+-        {
+-            "datasource": {
+-                "type": "tempo",
+-                "uid": "${tempo_datasource}"
+-            },
+-            "description": "This panel displays the distribution of request durations for GenAI services. It highlights how long requests take to complete, from the shortest to the longest durations, offering insights into system performance and efficiency. Understanding this distribution helps in identifying bottlenecks and optimizing response times.",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "fixedColor": "blue",
+-                        "mode": "palette-classic"
+-                    },
+-                    "custom": {
+-                        "fillOpacity": 81,
+-                        "gradientMode": "opacity",
+-                        "hideFrom": {
+-                            "legend": false,
+-                            "tooltip": false,
+-                            "viz": false
+-                        },
+-                        "lineWidth": 3,
+-                        "stacking": {
+-                            "group": "A",
+-                            "mode": "none"
+-                        }
+-                    },
+-                    "mappings": [],
+-                    "min": 0,
+-                    "thresholds": {
+-                        "mode": "absolute",
+-                        "steps": [
+-                            {
+-                                "color": "green",
+-                                "value": 0
+-                            },
+-                            {
+-                                "color": "red",
+-                                "value": 10
+-                            }
+-                        ]
+-                    },
+-                    "unit": "s"
+-                },
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 8,
+-                "w": 24,
+-                "x": 0,
+-                "y": 25
+-            },
+-            "id": 4,
+-            "options": {
+-                "legend": {
+-                    "calcs": [],
+-                    "displayMode": "list",
+-                    "placement": "bottom",
+-                    "showLegend": false
+-                },
+-                "tooltip": {
+-                    "hideZeros": false,
+-                    "mode": "single",
+-                    "sort": "none"
+-                }
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "tempo",
+-                        "uid": "${tempo_datasource}"
+-                    },
+-                    "filters": [
+-                        {
+-                            "id": "status",
+-                            "operator": "=",
+-                            "scope": "intrinsic",
+-                            "tag": "status",
+-                            "value": "ok",
+-                            "valueType": "keyword"
+-                        },
+-                        {
+-                            "id": "f755ab99",
+-                            "operator": "=",
+-                            "scope": "span",
+-                            "tag": "telemetry.sdk.name",
+-                            "value": [
+-                                "openlit"
+-                            ],
+-                            "valueType": "string"
+-                        }
+-                    ],
+-                    "limit": 20,
+-                    "metricsQueryType": "range",
+-                    "query": "{status=ok && span.telemetry.sdk.name=\"openlit\" && span.service.name=~\"$application\" && span.deployment.environment=~\"$environment\"}",
+-                    "queryType": "traceql",
+-                    "refId": "A",
+-                    "tableType": "traces"
+-                }
+-            ],
+-            "title": "Request Duration Distribution",
+-            "type": "histogram"
+-        },
+-        {
+-            "datasource": {
+-                "type": "prometheus",
+-                "uid": "${prometheus_datasource}"
+-            },
+-            "description": "This panel displays a comparative graph showing the average number of tokens consumed for input and output against the average usage cost. It provides a visual representation of the relationship between the volume of data processed (in tokens) and the financial implications of using GenAI services. Analyzing this comparison helps in assessing cost-effectiveness and guiding strategic decisions for efficient resource utilization.",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "mode": "palette-classic"
+-                    },
+-                    "custom": {
+-                        "axisBorderShow": false,
+-                        "axisCenteredZero": false,
+-                        "axisColorMode": "text",
+-                        "axisLabel": "",
+-                        "axisPlacement": "auto",
+-                        "barAlignment": 1,
+-                        "barWidthFactor": 0.6,
+-                        "drawStyle": "line",
+-                        "fillOpacity": 30,
+-                        "gradientMode": "opacity",
+-                        "hideFrom": {
+-                            "legend": false,
+-                            "tooltip": false,
+-                            "viz": false
+-                        },
+-                        "insertNulls": false,
+-                        "lineInterpolation": "smooth",
+-                        "lineStyle": {
+-                            "fill": "solid"
+-                        },
+-                        "lineWidth": 2,
+-                        "pointSize": 5,
+-                        "scaleDistribution": {
+-                            "type": "linear"
+-                        },
+-                        "showPoints": "always",
+-                        "spanNulls": true,
+-                        "stacking": {
+-                            "group": "A",
+-                            "mode": "none"
+-                        },
+-                        "thresholdsStyle": {
+-                            "mode": "off"
+-                        }
+-                    },
+-                    "mappings": [],
+-                    "thresholds": {
+-                        "mode": "absolute",
+-                        "steps": [
+-                            {
+-                                "color": "green",
+-                                "value": 0
+-                            },
+-                            {
+-                                "color": "red",
+-                                "value": 80
+-                            }
+-                        ]
+-                    },
+-                    "unit": "none"
+-                },
+-                "overrides": [
+-                    {
+-                        "matcher": {
+-                            "id": "byName",
+-                            "options": "Usage Cost"
+-                        },
+-                        "properties": [
+-                            {
+-                                "id": "unit",
+-                                "value": "currencyUSD"
+-                            },
+-                            {
+-                                "id": "decimals",
+-                                "value": 6
+-                            }
+-                        ]
+-                    }
+-                ]
+-            },
+-            "gridPos": {
+-                "h": 10,
+-                "w": 24,
+-                "x": 0,
+-                "y": 33
+-            },
+-            "id": 6,
+-            "options": {
+-                "legend": {
+-                    "calcs": [],
+-                    "displayMode": "list",
+-                    "placement": "bottom",
+-                    "showLegend": true
+-                },
+-                "tooltip": {
+-                    "hideZeros": false,
+-                    "mode": "single",
+-                    "sort": "none"
+-                }
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "expr": "avg(gen_ai_usage_input_tokens_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
+-                    "hide": false,
+-                    "legendFormat": "Input Tokens",
+-                    "range": true,
+-                    "refId": "A"
+-                },
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "expr": "avg(gen_ai_usage_output_tokens_total{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"})",
+-                    "hide": false,
+-                    "legendFormat": "Output Tokens",
+-                    "range": true,
+-                    "refId": "B"
+-                },
+-                {
+-                    "datasource": {
+-                        "type": "prometheus",
+-                        "uid": "${prometheus_datasource}"
+-                    },
+-                    "expr": "avg(gen_ai_usage_cost_USD_sum{telemetry_sdk_name=\"openlit\", service_name=~\"$application\", deployment_environment=~\"$environment\"}) / 100000 OR on() vector(0)",
+-                    "hide": false,
+-                    "legendFormat": "Usage Cost",
+-                    "range": true,
+-                    "refId": "C"
+-                }
+-            ],
+-            "title": "Average Token Consumption vs. Average Usage Cost Comparison",
+-            "type": "timeseries"
+-        },
+-        {
+-            "collapsed": false,
+-            "gridPos": {
+-                "h": 1,
+-                "w": 24,
+-                "x": 0,
+-                "y": 43
+-            },
+-            "id": 10,
+-            "panels": [],
+-            "title": "Detailed Traces",
+-            "type": "row"
+-        },
+-        {
+-            "datasource": {
+-                "type": "tempo",
+-                "uid": "${tempo_datasource}"
+-            },
+-            "description": "This panel displays a detailed table of GenAI request traces, providing comprehensive insights into each request's timing, source, type, and outcome. It allows for the in-depth analysis of individual requests, facilitating troubleshooting, performance monitoring, and understanding user interactions with GenAI services. Tracking this helps in identifying patterns, potential issues, and opportunities for optimization.",
+-            "fieldConfig": {
+-                "defaults": {
+-                    "color": {
+-                        "mode": "continuous-BlPu"
+-                    },
+-                    "custom": {
+-                        "align": "auto",
+-                        "cellOptions": {
+-                            "type": "color-background"
+-                        },
+-                        "inspect": false
+-                    },
+-                    "mappings": [],
+-                    "thresholds": {
+-                        "mode": "absolute",
+-                        "steps": [
+-                            {
+-                                "color": "green",
+-                                "value": 0
+-                            }
+-                        ]
+-                    },
+-                    "unit": "s"
+-                },
+-                "overrides": []
+-            },
+-            "gridPos": {
+-                "h": 10,
+-                "w": 24,
+-                "x": 0,
+-                "y": 44
+-            },
+-            "id": 8,
+-            "options": {
+-                "cellHeight": "sm",
+-                "footer": {
+-                    "countRows": false,
+-                    "fields": "",
+-                    "reducer": [
+-                        "sum"
+-                    ],
+-                    "show": false
+-                },
+-                "showHeader": true
+-            },
+-            "pluginVersion": "12.1.1",
+-            "targets": [
+-                {
+-                    "datasource": {
+-                        "type": "tempo",
+-                        "uid": "${tempo_datasource}"
+-                    },
+-                    "filters": [
+-                        {
+-                            "id": "status",
+-                            "operator": "=",
+-                            "scope": "intrinsic",
+-                            "tag": "status",
+-                            "value": "ok",
+-                            "valueType": "keyword"
+-                        }
+-                    ],
+-                    "limit": 20,
+-                    "metricsQueryType": "range",
+-                    "query": "{status=ok && span.service.name=~\"$application\" && span.deployment.environment=~\"$environment\"} | select(span.gen_ai.prompt, span.gen_ai.completion, span.gen_ai.usage.cost)",
+-                    "queryType": "traceql",
+-                    "refId": "A",
+-                    "tableType": "traces"
+-                }
+-            ],
+-            "title": "",
+-            "transparent": true,
+-            "type": "table"
+-        }
+-    ],
+-    "preload": false,
+-    "refresh": "5s",
+-    "schemaVersion": 41,
+-    "tags": [],
+-    "templating": {
+-        "list": [
+-            {
+-                "current": {
+-                    "text": "Tempo",
+-                    "value": "tempo"
+-                },
+-                "includeAll": false,
+-                "label": "Tempo data source",
+-                "name": "tempo_datasource",
+-                "options": [],
+-                "query": "tempo",
+-                "refresh": 1,
+-                "regex": "",
+-                "type": "datasource"
+-            },
+-            {
+-                "current": {
+-                    "text": "Prometheus",
+-                    "value": "prometheus"
+-                },
+-                "includeAll": false,
+-                "label": "Prometheus data source",
+-                "name": "prometheus_datasource",
+-                "options": [],
+-                "query": "prometheus",
+-                "refresh": 1,
+-                "regex": "(?!grafanacloud-usage|grafanacloud-ml-metrics).+",
+-                "type": "datasource"
+-            },
+-            {
+-                "allValue": ".*",
+-                "current": {
+-                    "text": "All",
+-                    "value": "$__all"
+-                },
+-                "datasource": {
+-                    "type": "prometheus",
+-                    "uid": "${prometheus_datasource}"
+-                },
+-                "definition": "label_values(gen_ai_requests_total, service_name)",
+-                "includeAll": true,
+-                "label": "Application",
+-                "multi": true,
+-                "name": "application",
+-                "options": [],
+-                "query": {
+-                    "qryType": 1,
+-                    "query": "label_values(gen_ai_requests_total, service_name)",
+-                    "refId": "PrometheusVariableQueryEditor-VariableQuery"
+-                },
+-                "refresh": 2,
+-                "regex": "",
+-                "type": "query"
+-            },
+-            {
+-                "allValue": ".*",
+-                "current": {
+-                    "text": "All",
+-                    "value": "$__all"
+-                },
+-                "datasource": {
+-                    "type": "prometheus",
+-                    "uid": "${prometheus_datasource}"
+-                },
+-                "definition": "label_values(gen_ai_requests_total, deployment_environment)",
+-                "includeAll": true,
+-                "label": "Environment",
+-                "multi": true,
+-                "name": "environment",
+-                "options": [],
+-                "query": {
+-                    "qryType": 1,
+-                    "query": "label_values(gen_ai_requests_total, deployment_environment)",
+-                    "refId": "PrometheusVariableQueryEditor-VariableQuery"
+-                },
+-                "refresh": 2,
+-                "regex": "",
+-                "sort": 1,
+-                "type": "query"
+-            }
+-        ]
+-    },
+-    "time": {
+-        "from": "now-15m",
+-        "to": "now"
+-    },
+-    "timepicker": {},
+-    "timezone": "browser",
+-    "title": "GenAI Observability",
+-    "uid": "9c41dda6-4dff-4423-adec-8f2bc0fc5b58",
+-    "version": 1
+-}
+\ No newline at end of file
+diff --git a/apps/grafana/grafana.ini b/apps/grafana/grafana.ini
+deleted file mode 100644
+index 558e7f0..0000000
+--- a/apps/grafana/grafana.ini
++++ /dev/null
+@@ -1,16 +0,0 @@
+-[auth.anonymous]
+-# Enable anonymous access
+-enabled = true
+-# Give anonymous users Admin role in the default org
+-org_role = Admin
+-
+-[auth]
+-# Optional: hide the login form since anonymous has admin
+-disable_login_form = true
+-
+-[dashboards]
+-# Make our LLM Observability dashboard the global default home for all users
+-default_home_dashboard_path = /etc/grafana/dashboards/llm_observability.json
+-
+-[log]
+-level = warning
+diff --git a/apps/grafana/provisioning/dashboards/dashboards.yaml b/apps/grafana/provisioning/dashboards/dashboards.yaml
+deleted file mode 100644
+index dbe1fa1..0000000
+--- a/apps/grafana/provisioning/dashboards/dashboards.yaml
++++ /dev/null
+@@ -1,13 +0,0 @@
+-apiVersion: 1
+-providers:
+-  - name: "LLM Dashboards"
+-    orgId: 1
+-    folder: "LLM Observability"
+-    type: file
+-    disableDeletion: false
+-    editable: true
+-    updateIntervalSeconds: 10
+-    allowUiUpdates: true
+-    options:
+-      path: /etc/grafana/dashboards
+-      foldersFromFilesStructure: true
+diff --git a/apps/grafana/provisioning/datasources/datasources.yaml b/apps/grafana/provisioning/datasources/datasources.yaml
+deleted file mode 100644
+index e0ca5da..0000000
+--- a/apps/grafana/provisioning/datasources/datasources.yaml
++++ /dev/null
+@@ -1,18 +0,0 @@
+-apiVersion: 1
+-
+-datasources:
+-  - name: Tempo
+-    type: tempo
+-    access: proxy
+-    url: http://tempo:3200
+-    uid: tempo
+-    editable: true
+-    isDefault: false
+-    
+-  - name: Prometheus
+-    type: prometheus
+-    access: proxy
+-    url: http://prometheus:9090
+-    uid: prometheus
+-    editable: true
+-    isDefault: true
+diff --git a/apps/grafana/provisioning/org/org.yaml b/apps/grafana/provisioning/org/org.yaml
+deleted file mode 100644
+index ef2e1e5..0000000
+--- a/apps/grafana/provisioning/org/org.yaml
++++ /dev/null
+@@ -1,7 +0,0 @@
+-apiVersion: 1
+-
+-# Set the default home dashboard for the Grafana org
+-preferences:
+-  homeDashboardUID: llm-observability
+-  theme: light
+-  timezone: browser
+diff --git a/apps/grafana_tempo/tempo.yaml b/apps/grafana_tempo/tempo.yaml
+deleted file mode 100644
+index 7aab7d2..0000000
+--- a/apps/grafana_tempo/tempo.yaml
++++ /dev/null
+@@ -1,52 +0,0 @@
+-server:
+-  http_listen_port: 3200
+-  grpc_listen_port: 9095
+-
+-distributor:
+-  receivers:
+-    otlp:
+-      protocols:
+-        grpc:
+-          endpoint: 0.0.0.0:4317
+-        http:
+-          endpoint: 0.0.0.0:4318
+-
+-ingester:
+-  max_block_duration: 5m               # cut the headblock when this much time passes
+-  trace_idle_period: 10s               # the length of time after a trace has not received spans to consider it complete and flush it
+-  max_block_bytes: 1_000_000           # maximum size of a block before cutting it
+-
+-compactor:
+-  compaction:
+-    block_retention: 1h                # overall Tempo trace retention
+-
+-metrics_generator:
+-  registry:
+-    external_labels:
+-      source: tempo
+-      cluster: docker-compose
+-  storage:
+-    path: /tmp/tempo/generator/wal
+-    remote_write:
+-      - url: http://prometheus:9090/api/v1/write
+-        send_exemplars: true
+-  traces_storage:
+-    path: /tmp/tempo/generator/traces
+-
+-storage:
+-  trace:
+-    backend: local                     # backend configuration to use
+-    wal:
+-      path: /tmp/tempo/wal             # where to store the the wal locally
+-    local:
+-      path: /tmp/tempo/blocks
+-
+-query_frontend:
+-  search:
+-    duration_slo: 5s
+-    throughput_bytes_slo: 1.073741824e+09
+-  trace_by_id:
+-    duration_slo: 5s
+-
+-usage_report:
+-  reporting_enabled: false
+diff --git a/apps/otel_col/Dockerfile b/apps/otel_col/Dockerfile
+deleted file mode 100644
+index 6ac7d84..0000000
+--- a/apps/otel_col/Dockerfile
++++ /dev/null
+@@ -1,7 +0,0 @@
+-# apps/otel_col/Dockerfile
+-FROM otel/opentelemetry-collector-contrib:0.94.0
+-
+-COPY otel_config.yaml /etc/otelcol-config.yml
+-
+-ENTRYPOINT ["/otelcol-contrib"]
+-CMD ["--config", "/etc/otelcol-config.yml"]
+diff --git a/apps/otel_col/otel_config.yaml b/apps/otel_col/otel_config.yaml
+deleted file mode 100644
+index ca3c5c2..0000000
+--- a/apps/otel_col/otel_config.yaml
++++ /dev/null
+@@ -1,53 +0,0 @@
+-receivers:
+-  otlp:
+-    protocols:
+-      http:
+-        include_metadata: true
+-        endpoint: 0.0.0.0:4318
+-      grpc:
+-        include_metadata: true
+-        endpoint: 0.0.0.0:4317
+-
+-processors:
+-  batch:
+-    timeout: 1s # export batches every 1 second instead of default 5s
+-    send_batch_size: 100 # smaller batches sent more frequently
+-  memory_limiter:
+-    # 80% of maximum memory up to 2G
+-    limit_mib: 1500
+-    # 25% of limit up to 2G
+-    spike_limit_mib: 512
+-    check_interval: 1s
+-
+-exporters:
+-  # Export traces to Tempo
+-  otlp/tempo:
+-    endpoint: tempo:4317
+-    tls:
+-      insecure: true
+-  
+-  # azuremonitor:
+-  #   connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
+-
+-  
+-  # Adding debug exporter to see logs in the collector output
+-  debug:
+-    verbosity: detailed
+-
+-  # Expose metrics in Prometheus format for scraping
+-  prometheus:
+-    endpoint: 0.0.0.0:9464
+-    resource_to_telemetry_conversion:
+-      enabled: true
+-
+-
+-service:
+-  pipelines:
+-    traces:
+-      receivers: [otlp]
+-      processors: [batch]
+-      exporters: [otlp/tempo]
+-    metrics:
+-      receivers: [otlp]
+-      processors: [batch]
+-      exporters: [prometheus]
+diff --git a/apps/prometheus/prometheus.yml b/apps/prometheus/prometheus.yml
+deleted file mode 100644
+index d0acc8a..0000000
+--- a/apps/prometheus/prometheus.yml
++++ /dev/null
+@@ -1,10 +0,0 @@
+-global:
+-  scrape_interval: 2s
+-  evaluation_interval: 2s
+-
+-scrape_configs:
+-  # Scrape the OpenTelemetry Collector's Prometheus exporter endpoint
+-  - job_name: 'otel-collector'
+-    scrape_interval: 2s
+-    static_configs:
+-      - targets: ['otelcol:9464']
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 79bc444..c63ca25 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -18,62 +18,3 @@ services:
+       - llm-workshop-api
+     stdin_open: true # keep STDIN open for interactive CLI
+     tty: true # allocate a pseudo-TTY for nice prompts
+-
+-  otelcol:
+-    build: ./apps/otel_col
+-    container_name: otelcol
+-    deploy:
+-      resources:
+-        limits:
+-          memory: 125M
+-    restart: unless-stopped
+-    volumes:
+-      - ./apps/otel_col/otel_config.yaml:/etc/otelcol-config.yml
+-    ports:
+-      - "4317:4317" # OTLP gRPC receiver
+-      - "4318:4318" # OTLP http receiver
+-      # - "9464:9464"   # Optional: expose Prometheus scrape endpoint to host
+-    depends_on:
+-      - tempo
+-
+-  grafana:
+-    image: grafana/grafana:12.1.1
+-    container_name: grafana
+-    restart: unless-stopped
+-    ports:
+-      - "3000:3000" # Grafana UI
+-    volumes:
+-      - ./apps/grafana/provisioning:/etc/grafana/provisioning
+-      - ./apps/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+-      - ./apps/grafana/dashboards:/etc/grafana/dashboards:ro
+-      # - grafana-data:/var/lib/grafana
+-    depends_on:
+-      - tempo
+-      - prometheus
+-
+-  tempo:
+-    image: grafana/tempo:main-a909571
+-    container_name: tempo
+-    restart: unless-stopped
+-    ports:
+-      - "3200:3200" # Tempo HTTP API
+-      - "9095:9095" # Tempo gRPC API
+-    volumes:
+-      - ./apps/grafana_tempo/tempo.yaml:/etc/tempo.yaml:ro
+-      #- tempo-data:/tmp/tempo
+-    command: [ "-config.file=/etc/tempo.yaml" ]
+-
+-  prometheus:
+-    image: prom/prometheus:v3.5.0
+-    container_name: prometheus
+-    restart: unless-stopped
+-    depends_on:
+-      - otelcol
+-    ports:
+-      - "9090:9090" # Prometheus UI
+-    volumes:
+-      - ./apps/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+-
+-volumes:
+-  tempo-data:
+-  grafana-data:
+diff --git a/pyproject.toml b/pyproject.toml
+index 6869c4a..d4fdc3b 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -14,16 +14,8 @@ pydantic = "^2.9.0"
+ pydantic-settings = "^2.6.0"
+ python-dotenv = "^1.0.1"
+ httpx = "^0.27.0"
+-openlit = "^1.35"
+ openai = ">=1.92.0"
+ 
+-[tool.poetry.group.pii]
+-optional = true
+-
+-[tool.poetry.group.pii.dependencies]
+-presidio-analyzer = "^2.2.0"
+-presidio-anonymizer = "^2.2.0"
+-spacy = "^3.7.0"
+ 
+ [tool.poetry.group.dev.dependencies]
+ pytest = "^8.3.0"

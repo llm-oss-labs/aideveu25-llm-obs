@@ -18,3 +18,5 @@ curl -fsSL https://ollama.com/install.sh | sudo -E sh || true
 
 # Prune Poetry/pip caches to keep the image/container smaller
 rm -rf ~/.cache/pip ~/.cache/pypoetry || true
+
+docker compose pull
