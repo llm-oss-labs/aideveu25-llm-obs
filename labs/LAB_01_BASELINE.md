@@ -98,6 +98,9 @@ First, we'll switch to the baseline configuration using our lab management syste
 🛑 **CRITICAL FIRST STEP**: You **MUST** run this command before proceeding! Skipping this will cause the entire lab to fail because observability components from previous labs will conflict with the baseline setup.
 
 ```bash
+# Copy environment configuration
+cp .env.example .env
+
 # Switch to Lab 1 baseline configuration
 make lab1
 ```
