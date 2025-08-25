@@ -1,5 +1,5 @@
 diff --git a/apps/api/main.py b/apps/api/main.py
-index 3ae7ab1..2a55628 100644
+index 0440214193924e9cc752354772658dd0e7485eb9..01faf151647c689c04a895ca14523f3d0d54aa1f 100644
 --- a/apps/api/main.py
 +++ b/apps/api/main.py
 @@ -17,6 +17,7 @@ from .services.llm_client import LLMClient
@@ -21,7 +21,7 @@ index 3ae7ab1..2a55628 100644
      """Load system prompt from config file."""
 diff --git a/apps/otel_col/Dockerfile b/apps/otel_col/Dockerfile
 new file mode 100644
-index 0000000..6ac7d84
+index 0000000000000000000000000000000000000000..6ac7d8487a0b7dca3a075428ef93865358daf0d0
 --- /dev/null
 +++ b/apps/otel_col/Dockerfile
 @@ -0,0 +1,7 @@
@@ -34,10 +34,10 @@ index 0000000..6ac7d84
 +CMD ["--config", "/etc/otelcol-config.yml"]
 diff --git a/apps/otel_col/otel_config.yaml b/apps/otel_col/otel_config.yaml
 new file mode 100644
-index 0000000..218594a
+index 0000000000000000000000000000000000000000..e9f845f0262133666ce2b7151866cf90731bfc02
 --- /dev/null
 +++ b/apps/otel_col/otel_config.yaml
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,40 @@
 +receivers:
 +  otlp:
 +    protocols:
@@ -60,6 +60,7 @@ index 0000000..218594a
 +    check_interval: 1s
 +
 +exporters:
++  
 +  # azuremonitor:
 +  #   connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
 +
@@ -78,10 +79,10 @@ index 0000000..218594a
 +      processors: [batch]
 +      exporters: [debug]
 diff --git a/docker-compose.yml b/docker-compose.yml
-index c63ca25..0a8a3fa 100644
+index c63ca251d5babc4998c5804676c0c35514d31f88..43a8af1cebd014c4dc21743ad6fbf1f5358b3454 100644
 --- a/docker-compose.yml
 +++ b/docker-compose.yml
-@@ -18,3 +18,17 @@ services:
+@@ -18,3 +18,18 @@ services:
        - llm-workshop-api
      stdin_open: true # keep STDIN open for interactive CLI
      tty: true # allocate a pseudo-TTY for nice prompts
@@ -99,15 +100,16 @@ index c63ca25..0a8a3fa 100644
 +    ports:
 +      - "4317:4317" # OTLP gRPC receiver
 +      - "4318:4318" # OTLP http receiver
++      # - "9464:9464"   # Optional: expose Prometheus scrape endpoint to host
 diff --git a/pyproject.toml b/pyproject.toml
-index d4fdc3b..7c7462b 100644
+index b656edb638f2a8de76307d40b1b01dbe3268e17c..3a84cd3e7975b51f7299174a7f9b8b67a7c75c75 100644
 --- a/pyproject.toml
 +++ b/pyproject.toml
-@@ -14,6 +14,7 @@ pydantic = "^2.9.0"
- pydantic-settings = "^2.6.0"
+@@ -15,6 +15,7 @@ pydantic-settings = "^2.6.0"
  python-dotenv = "^1.0.1"
  httpx = "^0.27.0"
-+openlit = "^1.35"
  openai = ">=1.92.0"
++openlit = "^1.35"
  
- 
+ [tool.poetry.group.dev.dependencies]
+ pytest = "^8.3.0"

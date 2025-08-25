@@ -1,5 +1,5 @@
 diff --git a/apps/api/Dockerfile b/apps/api/Dockerfile
-index 44c742e..092b203 100644
+index 4f96001c82031f4705fe926f809bdbe9ee98b586..82c32b90db1d9871c1d83eb241602f7c2b5c9938 100644
 --- a/apps/api/Dockerfile
 +++ b/apps/api/Dockerfile
 @@ -11,8 +11,7 @@ RUN pip install --no-cache-dir "poetry==$POETRY_VERSION" \
@@ -13,7 +13,7 @@ index 44c742e..092b203 100644
  COPY apps/api ./apps/api
  
 diff --git a/apps/api/main.py b/apps/api/main.py
-index 1a76a1c..3ae7ab1 100644
+index 01faf151647c689c04a895ca14523f3d0d54aa1f..0440214193924e9cc752354772658dd0e7485eb9 100644
 --- a/apps/api/main.py
 +++ b/apps/api/main.py
 @@ -17,7 +17,6 @@ from .services.llm_client import LLMClient
@@ -33,82 +33,8 @@ index 1a76a1c..3ae7ab1 100644
  
  def load_system_prompt() -> str:
      """Load system prompt from config file."""
-@@ -49,7 +46,8 @@ def load_system_prompt() -> str:
-         logger.info(f"Loaded system prompt from {config_path}")
-         return prompt
-     except FileNotFoundError:
--        logger.warning(f"System prompt file not found at {config_path}, using default")
-+        logger.warning(
-+            f"System prompt file not found at {config_path}, using default")
-         return "You are a helpful AI assistant. Provide clear and accurate responses."
-     except Exception as e:
-         logger.error(f"Error loading system prompt: {e}")
-@@ -61,41 +59,43 @@ async def lifespan(app: FastAPI):
-     """Application lifespan manager for startup and shutdown tasks."""
-     # Startup
-     logger.info("Starting LLM Workshop API...")
--    
-+
-     try:
-         # Load configuration
-         app_state["settings"] = get_settings()
--        
-+
-         # Load system prompt
-         app_state["system_prompt"] = load_system_prompt()
--        
-+
-         # Initialize LLM client
-         try:
-             app_state["llm_client"] = LLMClient(
--                app_state["settings"], 
-+                app_state["settings"],
-                 app_state["system_prompt"]
-             )
--            
-+
-             # Test the connection
-             provider_info = app_state["llm_client"].get_provider_info()
--            logger.info(f"✅ LLM client initialized: {provider_info['provider']} provider using model {provider_info['model']}")
-+            logger.info(
-+                f"✅ LLM client initialized: {provider_info['provider']} provider using model {provider_info['model']}")
-             app_state["is_healthy"] = True
--            
-+
-         except Exception as e:
-             logger.error(f"❌ Failed to initialize LLM client: {e}")
--            logger.warning("API will start in degraded mode - chat endpoints will return 503")
-+            logger.warning(
-+                "API will start in degraded mode - chat endpoints will return 503")
-             app_state["llm_client"] = None
-             app_state["is_healthy"] = False
--        
-+
-         # Store state in app for access in routes
-         app.state.app_state = app_state
--        
-+
-     except Exception as e:
-         logger.error(f"Failed to load configuration: {e}")
-         raise
--    
-+
-     yield
--    
-+
-     # Shutdown
-     logger.info("Shutting down LLM Workshop API...")
- 
-@@ -153,7 +153,6 @@ async def root():
-     }
- 
- 
--
- @app.get(
-     "/healthz",
-     response_model=HealthResponse,
 diff --git a/apps/api/routers/inference.py b/apps/api/routers/inference.py
-index ec5f351..954afbe 100644
+index 535d458c51436fd1304908ea5242d4b6f5152336..fe7df185a3143d04c158ddaee664f430528e1155 100644
 --- a/apps/api/routers/inference.py
 +++ b/apps/api/routers/inference.py
 @@ -6,7 +6,6 @@ from typing import Dict, List
@@ -119,108 +45,36 @@ index ec5f351..954afbe 100644
  
  logger = logging.getLogger(__name__)
  
-@@ -20,11 +19,11 @@ sessions: Dict[str, List[Dict[str, str]]] = {}
- async def chat(request: ChatRequest, app_request: Request):
-     """
-     Process chat requests.
--    
-+
-     Args:
-         request: ChatRequest with session_id and user_message
-         app_request: FastAPI Request to access app state
--        
-+
-     Returns:
-         ChatResponse with session_id and reply
-     """
-@@ -32,7 +31,7 @@ async def chat(request: ChatRequest, app_request: Request):
-     app_state = app_request.app.state.app_state
+@@ -33,7 +32,6 @@ async def chat(request: ChatRequest, app_request: Request):
      llm_client = app_state.get("llm_client")
      settings = app_state.get("settings")
--    
-+
-     # Check if LLM client is available
+ 
+-    # Check if LLM client is available
      if not llm_client:
          logger.error("Chat request received but LLM client is not available")
-@@ -40,57 +39,49 @@ async def chat(request: ChatRequest, app_request: Request):
-             status_code=503,
-             detail="LLM service unavailable. Please check your configuration."
+         raise HTTPException(
+@@ -42,15 +40,6 @@ async def chat(request: ChatRequest, app_request: Request):
          )
--    # Mask PII in user message before processing    
      user_message = request.user_message
  
 -    try:
--        pii_masking_enabled = True if settings is None else getattr(settings, "pii_masking_enabled", True)
+-        pii_masking_enabled = True if settings is None else getattr(
+-            settings, "pii_masking_enabled", True)
 -        if pii_masking_enabled:
 -            user_message = PIIMasker.get_instance().mask(user_message)
 -    except Exception as e:
--        logger.warning(f"PII masking failed, proceeding with original message: {e}")
--    
+-        logger.warning(
+-            f"PII masking failed, proceeding with original message: {e}")
+-
      try:
          # Get or create session
          if request.session_id not in sessions:
-             sessions[request.session_id] = []
-             logger.info(f"Created new session: {request.session_id}")
--        
-+
-         # Add user message to session
-         sessions[request.session_id].append({
-             "role": "user",
-             "content": user_message
-         })
--        
-+
-         logger.info(f"Processing chat for session {request.session_id}")
--        
-+
-         # Generate response using the client's chat method
-         reply = await llm_client.chat(
-             session_id=request.session_id,
-             user_message=user_message
-         )
--        
-+
-         # Add assistant response to session
-         sessions[request.session_id].append({
-             "role": "assistant",
-             "content": reply
-         })
--        
-+
-         # Return response
-         return ChatResponse(
-             session_id=request.session_id,
-             reply=reply
-         )
--        
-+
-     except HTTPException:
-         # Re-raise HTTP exceptions
-         raise
-     except Exception as e:
-         logger.error(f"Error processing chat request: {e}")
--        
-+
-         # Parse error and provide generic helpful messages
-         error_msg = str(e).lower()
--        
-+
-         if "connection" in error_msg or "refused" in error_msg:
-             detail = "Cannot connect to LLM service. Please check your configuration and ensure the service is running."
-         elif "unauthorized" in error_msg or "401" in error_msg or "403" in error_msg:
-@@ -103,5 +94,5 @@ async def chat(request: ChatRequest, app_request: Request):
-             detail = "Request timed out. The service might be overloaded."
-         else:
-             detail = f"Failed to process chat request: {str(e)}"
--            
-+
-         raise HTTPException(status_code=500, detail=detail)
 diff --git a/apps/api/utils/pii_masker.py b/apps/api/utils/pii_masker.py
 deleted file mode 100644
-index 31dfb96..0000000
+index d2b66900d3f676d342f96901b6f2c71e850d9b1e..0000000000000000000000000000000000000000
 --- a/apps/api/utils/pii_masker.py
 +++ /dev/null
-@@ -1,107 +0,0 @@
+@@ -1,109 +0,0 @@
 -import threading
 -from typing import Dict, Optional
 -
@@ -266,7 +120,8 @@ index 31dfb96..0000000
 -                "US_PASSPORT": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 3, "from_end": True}),
 -                "US_DRIVER_LICENSE": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 4, "from_end": True}),
 -                # Handle common false positives for location entities
--                "LOCATION": OperatorConfig("keep", {}),  # Keep location entities to avoid masking "US", "UK", etc.
+-                # Keep location entities to avoid masking "US", "UK", etc.
+-                "LOCATION": OperatorConfig("keep", {}),
 -            }
 -        else:
 -            self.anonymizers = anonymizers
@@ -301,7 +156,8 @@ index 31dfb96..0000000
 -                detected_text = text[r.start:r.end].upper()
 -                # Common country/state abbreviations that are often false positives
 -                # when appearing near sensitive data like SSN, credit cards, etc.
--                common_abbreviations = {"US", "UK", "CA", "NY", "TX", "FL", "IL", "PA", "OH", "MI"}
+-                common_abbreviations = {"US", "UK", "CA",
+-                                        "NY", "TX", "FL", "IL", "PA", "OH", "MI"}
 -                if detected_text in common_abbreviations and r.score < 0.9:
 -                    # Skip this entity if it's a common abbreviation with low confidence
 -                    continue
@@ -330,7 +186,7 @@ index 31dfb96..0000000
 -            return text
 diff --git a/apps/grafana/dashboards/llm_observability.json b/apps/grafana/dashboards/llm_observability.json
 deleted file mode 100644
-index 2dfa979..0000000
+index 2dfa97963963db78bcbfefda5372442c438e8bfd..0000000000000000000000000000000000000000
 --- a/apps/grafana/dashboards/llm_observability.json
 +++ /dev/null
 @@ -1,1224 +0,0 @@
@@ -1561,7 +1417,7 @@ index 2dfa979..0000000
 \ No newline at end of file
 diff --git a/apps/grafana/grafana.ini b/apps/grafana/grafana.ini
 deleted file mode 100644
-index 558e7f0..0000000
+index 558e7f01b243576553411f9289104e19090c3f09..0000000000000000000000000000000000000000
 --- a/apps/grafana/grafana.ini
 +++ /dev/null
 @@ -1,16 +0,0 @@
@@ -1583,7 +1439,7 @@ index 558e7f0..0000000
 -level = warning
 diff --git a/apps/grafana/provisioning/dashboards/dashboards.yaml b/apps/grafana/provisioning/dashboards/dashboards.yaml
 deleted file mode 100644
-index dbe1fa1..0000000
+index dbe1fa19de6496103159ab5c227a1ea3030e6d84..0000000000000000000000000000000000000000
 --- a/apps/grafana/provisioning/dashboards/dashboards.yaml
 +++ /dev/null
 @@ -1,13 +0,0 @@
@@ -1602,7 +1458,7 @@ index dbe1fa1..0000000
 -      foldersFromFilesStructure: true
 diff --git a/apps/grafana/provisioning/datasources/datasources.yaml b/apps/grafana/provisioning/datasources/datasources.yaml
 deleted file mode 100644
-index e0ca5da..0000000
+index e0ca5da6c6fc0bfbcdcd93f6f83d80b4e3d4c009..0000000000000000000000000000000000000000
 --- a/apps/grafana/provisioning/datasources/datasources.yaml
 +++ /dev/null
 @@ -1,18 +0,0 @@
@@ -1626,7 +1482,7 @@ index e0ca5da..0000000
 -    isDefault: true
 diff --git a/apps/grafana/provisioning/org/org.yaml b/apps/grafana/provisioning/org/org.yaml
 deleted file mode 100644
-index ef2e1e5..0000000
+index ef2e1e58a93453421a0a41a2f2c3f0d2b32695af..0000000000000000000000000000000000000000
 --- a/apps/grafana/provisioning/org/org.yaml
 +++ /dev/null
 @@ -1,7 +0,0 @@
@@ -1639,7 +1495,7 @@ index ef2e1e5..0000000
 -  timezone: browser
 diff --git a/apps/grafana_tempo/tempo.yaml b/apps/grafana_tempo/tempo.yaml
 deleted file mode 100644
-index 7aab7d2..0000000
+index 7aab7d2f49ecb0824b93f9e33da3cd343f1ab8e5..0000000000000000000000000000000000000000
 --- a/apps/grafana_tempo/tempo.yaml
 +++ /dev/null
 @@ -1,52 +0,0 @@
@@ -1697,7 +1553,7 @@ index 7aab7d2..0000000
 -  reporting_enabled: false
 diff --git a/apps/otel_col/Dockerfile b/apps/otel_col/Dockerfile
 deleted file mode 100644
-index 6ac7d84..0000000
+index 6ac7d8487a0b7dca3a075428ef93865358daf0d0..0000000000000000000000000000000000000000
 --- a/apps/otel_col/Dockerfile
 +++ /dev/null
 @@ -1,7 +0,0 @@
@@ -1710,7 +1566,7 @@ index 6ac7d84..0000000
 -CMD ["--config", "/etc/otelcol-config.yml"]
 diff --git a/apps/otel_col/otel_config.yaml b/apps/otel_col/otel_config.yaml
 deleted file mode 100644
-index ca3c5c2..0000000
+index ca3c5c2e9feeaebdad739ced1bec5633e157268f..0000000000000000000000000000000000000000
 --- a/apps/otel_col/otel_config.yaml
 +++ /dev/null
 @@ -1,53 +0,0 @@
@@ -1769,7 +1625,7 @@ index ca3c5c2..0000000
 -      exporters: [prometheus]
 diff --git a/apps/prometheus/prometheus.yml b/apps/prometheus/prometheus.yml
 deleted file mode 100644
-index d0acc8a..0000000
+index d0acc8ac5977449ab306cd9c08c4f776dd07230a..0000000000000000000000000000000000000000
 --- a/apps/prometheus/prometheus.yml
 +++ /dev/null
 @@ -1,10 +0,0 @@
@@ -1784,10 +1640,10 @@ index d0acc8a..0000000
 -    static_configs:
 -      - targets: ['otelcol:9464']
 diff --git a/docker-compose.yml b/docker-compose.yml
-index 79bc444..c63ca25 100644
+index 743f521295b073504611703116cd6a2fb146b210..c63ca251d5babc4998c5804676c0c35514d31f88 100644
 --- a/docker-compose.yml
 +++ b/docker-compose.yml
-@@ -18,62 +18,3 @@ services:
+@@ -18,60 +18,3 @@ services:
        - llm-workshop-api
      stdin_open: true # keep STDIN open for interactive CLI
      tty: true # allocate a pseudo-TTY for nice prompts
@@ -1806,8 +1662,6 @@ index 79bc444..c63ca25 100644
 -      - "4317:4317" # OTLP gRPC receiver
 -      - "4318:4318" # OTLP http receiver
 -      # - "9464:9464"   # Optional: expose Prometheus scrape endpoint to host
--    depends_on:
--      - tempo
 -
 -  grafana:
 -    image: grafana/grafana:12.1.1
@@ -1851,16 +1705,15 @@ index 79bc444..c63ca25 100644
 -  tempo-data:
 -  grafana-data:
 diff --git a/pyproject.toml b/pyproject.toml
-index 6869c4a..d4fdc3b 100644
+index 0e00c2c64d43ac4f71c3400dcc1a48a1e1fa342d..b656edb638f2a8de76307d40b1b01dbe3268e17c 100644
 --- a/pyproject.toml
 +++ b/pyproject.toml
-@@ -14,16 +14,8 @@ pydantic = "^2.9.0"
- pydantic-settings = "^2.6.0"
+@@ -15,15 +15,6 @@ pydantic-settings = "^2.6.0"
  python-dotenv = "^1.0.1"
  httpx = "^0.27.0"
--openlit = "^1.35"
  openai = ">=1.92.0"
- 
+-openlit = "^1.35"
+-
 -[tool.poetry.group.pii]
 -optional = true
 -

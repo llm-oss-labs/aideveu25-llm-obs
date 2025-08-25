@@ -1,5 +1,5 @@
 diff --git a/apps/api/Dockerfile b/apps/api/Dockerfile
-index 092b203..44c742e 100644
+index 82c32b90db1d9871c1d83eb241602f7c2b5c9938..4f96001c82031f4705fe926f809bdbe9ee98b586 100644
 --- a/apps/api/Dockerfile
 +++ b/apps/api/Dockerfile
 @@ -11,7 +11,8 @@ RUN pip install --no-cache-dir "poetry==$POETRY_VERSION" \
@@ -13,7 +13,7 @@ index 092b203..44c742e 100644
  COPY apps/api ./apps/api
  
 diff --git a/apps/api/routers/inference.py b/apps/api/routers/inference.py
-index 954afbe..02024d4 100644
+index fe7df185a3143d04c158ddaee664f430528e1155..535d458c51436fd1304908ea5242d4b6f5152336 100644
 --- a/apps/api/routers/inference.py
 +++ b/apps/api/routers/inference.py
 @@ -6,6 +6,7 @@ from typing import Dict, List
@@ -24,11 +24,16 @@ index 954afbe..02024d4 100644
  
  logger = logging.getLogger(__name__)
  
-@@ -39,8 +40,18 @@ async def chat(request: ChatRequest, app_request: Request):
-             status_code=503,
-             detail="LLM service unavailable. Please check your configuration."
+@@ -32,6 +33,7 @@ async def chat(request: ChatRequest, app_request: Request):
+     llm_client = app_state.get("llm_client")
+     settings = app_state.get("settings")
+ 
++    # Check if LLM client is available
+     if not llm_client:
+         logger.error("Chat request received but LLM client is not available")
+         raise HTTPException(
+@@ -40,6 +42,15 @@ async def chat(request: ChatRequest, app_request: Request):
          )
-+    # Mask PII in user message before processing
      user_message = request.user_message
  
 +    try:
@@ -45,7 +50,7 @@ index 954afbe..02024d4 100644
          if request.session_id not in sessions:
 diff --git a/apps/api/utils/pii_masker.py b/apps/api/utils/pii_masker.py
 new file mode 100644
-index 0000000..d2b6690
+index 0000000000000000000000000000000000000000..d2b66900d3f676d342f96901b6f2c71e850d9b1e
 --- /dev/null
 +++ b/apps/api/utils/pii_masker.py
 @@ -0,0 +1,109 @@
@@ -159,12 +164,12 @@ index 0000000..d2b6690
 +        except Exception:
 +            return text
 diff --git a/pyproject.toml b/pyproject.toml
-index 7c7462b..6869c4a 100644
+index 3a84cd3e7975b51f7299174a7f9b8b67a7c75c75..0e00c2c64d43ac4f71c3400dcc1a48a1e1fa342d 100644
 --- a/pyproject.toml
 +++ b/pyproject.toml
-@@ -17,6 +17,13 @@ httpx = "^0.27.0"
- openlit = "^1.35"
+@@ -17,6 +17,14 @@ httpx = "^0.27.0"
  openai = ">=1.92.0"
+ openlit = "^1.35"
  
 +[tool.poetry.group.pii]
 +optional = true
@@ -173,6 +178,7 @@ index 7c7462b..6869c4a 100644
 +presidio-analyzer = "^2.2.0"
 +presidio-anonymizer = "^2.2.0"
 +spacy = "^3.7.0"
- 
++
  [tool.poetry.group.dev.dependencies]
  pytest = "^8.3.0"
+ pytest-asyncio = "^0.24.0"

@@ -1,6 +1,6 @@
 diff --git a/apps/grafana/dashboards/llm_observability.json b/apps/grafana/dashboards/llm_observability.json
 new file mode 100644
-index 0000000..2dfa979
+index 0000000000000000000000000000000000000000..2dfa97963963db78bcbfefda5372442c438e8bfd
 --- /dev/null
 +++ b/apps/grafana/dashboards/llm_observability.json
 @@ -0,0 +1,1224 @@
@@ -1231,7 +1231,7 @@ index 0000000..2dfa979
 \ No newline at end of file
 diff --git a/apps/grafana/grafana.ini b/apps/grafana/grafana.ini
 new file mode 100644
-index 0000000..558e7f0
+index 0000000000000000000000000000000000000000..558e7f01b243576553411f9289104e19090c3f09
 --- /dev/null
 +++ b/apps/grafana/grafana.ini
 @@ -0,0 +1,16 @@
@@ -1253,7 +1253,7 @@ index 0000000..558e7f0
 +level = warning
 diff --git a/apps/grafana/provisioning/dashboards/dashboards.yaml b/apps/grafana/provisioning/dashboards/dashboards.yaml
 new file mode 100644
-index 0000000..dbe1fa1
+index 0000000000000000000000000000000000000000..dbe1fa19de6496103159ab5c227a1ea3030e6d84
 --- /dev/null
 +++ b/apps/grafana/provisioning/dashboards/dashboards.yaml
 @@ -0,0 +1,13 @@
@@ -1272,7 +1272,7 @@ index 0000000..dbe1fa1
 +      foldersFromFilesStructure: true
 diff --git a/apps/grafana/provisioning/datasources/datasources.yaml b/apps/grafana/provisioning/datasources/datasources.yaml
 new file mode 100644
-index 0000000..e0ca5da
+index 0000000000000000000000000000000000000000..e0ca5da6c6fc0bfbcdcd93f6f83d80b4e3d4c009
 --- /dev/null
 +++ b/apps/grafana/provisioning/datasources/datasources.yaml
 @@ -0,0 +1,18 @@
@@ -1296,7 +1296,7 @@ index 0000000..e0ca5da
 +    isDefault: true
 diff --git a/apps/grafana/provisioning/org/org.yaml b/apps/grafana/provisioning/org/org.yaml
 new file mode 100644
-index 0000000..ef2e1e5
+index 0000000000000000000000000000000000000000..ef2e1e58a93453421a0a41a2f2c3f0d2b32695af
 --- /dev/null
 +++ b/apps/grafana/provisioning/org/org.yaml
 @@ -0,0 +1,7 @@
@@ -1309,7 +1309,7 @@ index 0000000..ef2e1e5
 +  timezone: browser
 diff --git a/apps/grafana_tempo/tempo.yaml b/apps/grafana_tempo/tempo.yaml
 new file mode 100644
-index 0000000..7aab7d2
+index 0000000000000000000000000000000000000000..7aab7d2f49ecb0824b93f9e33da3cd343f1ab8e5
 --- /dev/null
 +++ b/apps/grafana_tempo/tempo.yaml
 @@ -0,0 +1,52 @@
@@ -1366,10 +1366,10 @@ index 0000000..7aab7d2
 +usage_report:
 +  reporting_enabled: false
 diff --git a/apps/otel_col/otel_config.yaml b/apps/otel_col/otel_config.yaml
-index 218594a..ca3c5c2 100644
+index e9f845f0262133666ce2b7151866cf90731bfc02..ca3c5c2e9feeaebdad739ced1bec5633e157268f 100644
 --- a/apps/otel_col/otel_config.yaml
 +++ b/apps/otel_col/otel_config.yaml
-@@ -20,20 +20,34 @@ processors:
+@@ -20,21 +20,34 @@ processors:
      check_interval: 1s
  
  exporters:
@@ -1378,7 +1378,7 @@ index 218594a..ca3c5c2 100644
 +    endpoint: tempo:4317
 +    tls:
 +      insecure: true
-+  
+   
    # azuremonitor:
    #   connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
  
@@ -1408,7 +1408,7 @@ index 218594a..ca3c5c2 100644
 +      exporters: [prometheus]
 diff --git a/apps/prometheus/prometheus.yml b/apps/prometheus/prometheus.yml
 new file mode 100644
-index 0000000..d0acc8a
+index 0000000000000000000000000000000000000000..d0acc8ac5977449ab306cd9c08c4f776dd07230a
 --- /dev/null
 +++ b/apps/prometheus/prometheus.yml
 @@ -0,0 +1,10 @@
@@ -1423,16 +1423,13 @@ index 0000000..d0acc8a
 +    static_configs:
 +      - targets: ['otelcol:9464']
 diff --git a/docker-compose.yml b/docker-compose.yml
-index 0a8a3fa..79bc444 100644
+index 43a8af1cebd014c4dc21743ad6fbf1f5358b3454..743f521295b073504611703116cd6a2fb146b210 100644
 --- a/docker-compose.yml
 +++ b/docker-compose.yml
-@@ -32,3 +32,48 @@ services:
-     ports:
+@@ -33,3 +33,45 @@ services:
        - "4317:4317" # OTLP gRPC receiver
        - "4318:4318" # OTLP http receiver
-+      # - "9464:9464"   # Optional: expose Prometheus scrape endpoint to host
-+    depends_on:
-+      - tempo
+       # - "9464:9464"   # Optional: expose Prometheus scrape endpoint to host
 +
 +  grafana:
 +    image: grafana/grafana:12.1.1
