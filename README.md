@@ -185,7 +185,7 @@ LLM_PROVIDER=azure
 # --- Azure OpenAI Settings ---
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_OPENAI_API_KEY=your-api-key
-AZURE_OPENAI_MODEL=gpt-4o-mini
+AZURE_OPENAI_MODEL=gpt-4.1-mini
 # AZURE_OPENAI_API_VERSION=2024-02-15-preview  # (Default)
 ```
 

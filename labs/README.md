@@ -40,7 +40,7 @@ The workshop uses a **template-based system** to manage different configurations
 - **`make lab4`**: Switches to Lab 4 configuration (adds PII masking with Presidio)
 
 Each `make labX` command:
-1. **Builds incrementally** from the previous lab (lab2→lab1, lab3→lab2, lab4→lab3)
+1. **Builds incrementally** from the previous lab (lab1→lab2, lab2→lab3, lab3→lab4)
 2. **Copies template files** from `labs/templates/labX/` to override/add to current configuration
 3. **Updates configuration files** (`main.py`, `pyproject.toml`, `docker-compose.yml`, etc.)
 4. **Creates necessary directories** and configurations for that lab's specific features
@@ -85,11 +85,11 @@ Lab 3: + Visualization Stack          Lab 4: + Privacy Protection
 │ 📈 Prometheus   │   │               │ 📊 Grafana      │   │  │
 │ 📦 Tempo        │ ──┼─── Dashboards │ 📈 Prometheus   │   │  │
 └─────────────────┘   │               │ 📦 Tempo        │ ──┼──┼─ Privacy-Safe
-                      │               └─────────────────┘   │  │  Dashboards
-                      │                                     │  │
-                      └── Raw Telemetry ───────────────────┘  │
-                                                              │
-                          Debug Logs ─────────────────────────┘
+                      │               └─────────────────┘   │    Dashboards
+                      │                                     │  
+                      └── Raw Telemetry ───────────────────┘  
+                                                              
+                          
 ```
 
 ## 🚀 Quick Start

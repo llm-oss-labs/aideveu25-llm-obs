@@ -27,7 +27,7 @@ flowchart TB
 
     subgraph PROVIDERS["🤖 LLM Providers"]
         OLLAMA["Ollama<br/>Port: 11434<br/>phi4-mini model<br/>Local"]
-        AZURE["Azure OpenAI<br/>gpt-4o-mini<br/>Cloud API"]
+        AZURE["Azure OpenAI<br/>gpt-4.1-mini<br/>Cloud API"]
     end
 
     subgraph COLLECTOR["📈 Telemetry Collection"]
@@ -124,7 +124,6 @@ flowchart TB
 2. **NEW**: OTel Collector routes traces to Tempo and metrics to Prometheus
 3. **NEW**: Grafana provides unified access to both data sources
 4. **NEW**: Pre-built dashboards show LLM-specific metrics and traces
-5. **NEW**: Interactive exploration through Grafana Explore interface
 
 ## 📋 Prerequisites
 - Completed Lab 2 (Basic Observability with OpenLIT)
