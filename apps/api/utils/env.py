@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # Azure OpenAI Configuration
     azure_openai_model: str = Field(
-        default="gpt-4o-mini",
+        default="gpt-4.1-mini",
         env="AZURE_OPENAI_MODEL",
         description="Azure OpenAI model name"
     )

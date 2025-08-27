@@ -12,15 +12,14 @@ flowchart TB
     end
 
     subgraph APP["🚀 Application Layer"]
-        API["FastAPI Server<br/>Port: 8000<br/>REST API"]
+        API["FastAPI Server<br/>Port: 8000<br/>REST API<br/>📊 <i>OpenLIT SDK embedded</i>"]
         ROUTER["Chat Router<br/>/v1/chat endpoint<br/>Request Processing"]
         CLIENT["LLM Client Service<br/>Session Management<br/>Provider Abstraction"]
-        OPENLIT["📊 OpenLIT SDK<br/>Auto-Instrumentation<br/>Captures LLM Telemetry"]
     end
 
     subgraph PROVIDERS["🤖 LLM Providers"]
         OLLAMA["Ollama<br/>Port: 11434<br/>phi4-mini model<br/>Local"]
-        AZURE["Azure OpenAI<br/>gpt-4o-mini<br/>Cloud API"]
+        AZURE["Azure OpenAI<br/>gpt-4.1-mini<br/>Cloud API"]
     end
 
     subgraph COLLECTOR["📈 Telemetry Collection"]
@@ -45,18 +44,18 @@ flowchart TB
     CLIENT -->|Provider: ollama| OLLAMA
     CLIENT -->|Provider: azure| AZURE
     
-    %% OpenLIT Instrumentation (embedded in application)
-    OPENLIT -.->|Auto-Instruments| API
-    OPENLIT -.->|Auto-Instruments| CLIENT
-    OPENLIT -.->|Captures LLM Calls| OLLAMA
-    OPENLIT -.->|Captures LLM Calls| AZURE
+    %% OpenLIT Instrumentation (embedded within FastAPI server)
+    API -.->|Auto-Instruments<br/>HTTP Requests| ROUTER
+    API -.->|Auto-Instruments<br/>LLM Client Calls| CLIENT
+    CLIENT -.->|Instrumented Calls| OLLAMA
+    CLIENT -.->|Instrumented Calls| AZURE
     
     %% Telemetry Flow to Collector
-    OPENLIT -->|Traces & Metrics<br/>OTLP/gRPC<br/>Port: 4317| OTELCOL
+    API -->|Traces & Metrics<br/>OTLP/gRPC<br/>Port: 4317| OTELCOL
     
     %% Configuration
     ENV -.->|Configures<br/>Provider & Model| CLIENT
-    ENV -.->|OTEL Endpoint<br/>Configuration| OPENLIT
+    ENV -.->|OTEL Endpoint<br/>Configuration| API
     
     %% Response Flow (dashed)
     OLLAMA -.->|LLM Response<br/>📊 Instrumented| CLIENT
@@ -76,7 +75,6 @@ flowchart TB
 
     class CLI userInterface
     class API,ROUTER,CLIENT application
-    class OPENLIT observability
     class OLLAMA,AZURE providers
     class OTELCOL collector
     class ENV config

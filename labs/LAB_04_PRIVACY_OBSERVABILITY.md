@@ -166,8 +166,7 @@ curl -s "http://localhost:3200/api/search?limit=5" | jq -r '.traces[].traceID' |
 - Credit cards should show `4111-1111-1111-****` format
 
 ### Masking Strategy Trade-offs
-```bash
-cat << 'EOF' 
+```bash 
 🔄 Masking Strategies:
 
 🎭 Token Replacement:
@@ -184,7 +183,6 @@ cat << 'EOF'
 ✅ Maximum privacy protection
 ❌ Loses analytical value
 ❌ May break conversation flow
-EOF
 ```
 
 ### Compliance Considerations
